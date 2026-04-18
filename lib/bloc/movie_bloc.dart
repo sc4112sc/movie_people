@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/movie.dart';
 import '../services/atmovies_service.dart';
@@ -5,7 +6,10 @@ import '../services/atmovies_service.dart';
 // Events
 abstract class MovieEvent {}
 
-class FetchNowPlaying extends MovieEvent {}
+class FetchNowPlaying extends MovieEvent {
+  final Completer<void>? completer;
+  FetchNowPlaying({this.completer});
+}
 
 class LoadMovieDetail extends MovieEvent {
   final int index;
@@ -52,12 +56,17 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
     FetchNowPlaying event,
     Emitter<MovieState> emit,
   ) async {
+    print('🔄 [MovieBloc] 收到下拉刷新事件，準備重新抓取資料...');
     emit(MovieLoading());
     try {
       final movies = await _service.getNowPlaying();
+      print('✅ [MovieBloc] 成功從遠端取得 ${movies.length} 部最新上映電影！');
       emit(MovieLoaded(movies: movies));
     } catch (e) {
+      print('❌ [MovieBloc] 抓取資料失敗: $e');
       emit(MovieError(e.toString()));
+    } finally {
+      event.completer?.complete();
     }
   }
 

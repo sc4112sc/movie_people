@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' hide Transition;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -14,92 +15,101 @@ class MovieListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            expandedHeight: 100,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-              title: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.accentGradient,
-                      borderRadius: BorderRadius.circular(2),
+      body: RefreshIndicator(
+        color: AppTheme.accentPurple,
+        backgroundColor: AppTheme.cardDark,
+        onRefresh: () async {
+          final completer = Completer<void>();
+          context.read<MovieBloc>().add(FetchNowPlaying(completer: completer));
+          return completer.future;
+        },
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              expandedHeight: 100,
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.accentGradient,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    '現正上映',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+                    const SizedBox(width: 10),
+                    const Text(
+                      '現正上映',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          BlocBuilder<MovieBloc, MovieState>(
-            builder: (context, state) {
-              if (state is MovieLoading) {
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.55,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 12,
+            BlocBuilder<MovieBloc, MovieState>(
+              builder: (context, state) {
+                if (state is MovieLoading) {
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.55,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 12,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => _buildShimmerCard(),
+                        childCount: 6,
+                      ),
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => _buildShimmerCard(),
-                      childCount: 6,
-                    ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              if (state is MovieError) {
-                return SliverFillRemaining(
-                  child: _buildErrorWidget(context, state.message),
-                );
-              }
+                if (state is MovieError) {
+                  return SliverFillRemaining(
+                    child: _buildErrorWidget(context, state.message),
+                  );
+                }
 
-              if (state is MovieLoaded) {
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.48,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 12,
+                if (state is MovieLoaded) {
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.48,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 12,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) =>
+                            _buildMovieCard(state.movies[index], index),
+                        childCount: state.movies.length,
+                      ),
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          _buildMovieCard(state.movies[index], index),
-                      childCount: state.movies.length,
-                    ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              return const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              );
-            },
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
+                return const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
       ),
     );
   }
@@ -152,7 +162,7 @@ class MovieListPage extends StatelessWidget {
                                 color: AppTheme.cardDark,
                                 child: const Center(
                                   child: Icon(Icons.movie_rounded,
-                                      size: 36, color: AppTheme.textSecondary),
+                                      size: 36, color: AppTheme.textSecondary,),
                                 ),
                               ),
                               errorWidget: (_, __, ___) => Container(
@@ -163,7 +173,7 @@ class MovieListPage extends StatelessWidget {
                                     children: [
                                       const Icon(Icons.movie_rounded,
                                           size: 36,
-                                          color: AppTheme.textSecondary),
+                                          color: AppTheme.textSecondary,),
                                       const SizedBox(height: 8),
                                       Text(
                                         movie.title,
@@ -183,7 +193,7 @@ class MovieListPage extends StatelessWidget {
                               color: AppTheme.cardDark,
                               child: const Center(
                                 child: Icon(Icons.movie_rounded,
-                                    size: 36, color: AppTheme.textSecondary),
+                                    size: 36, color: AppTheme.textSecondary,),
                               ),
                             ),
                       // 底部漸層
@@ -215,7 +225,7 @@ class MovieListPage extends StatelessWidget {
                               Container(
                                 margin: const EdgeInsets.only(right: 6),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 3),
+                                    horizontal: 6, vertical: 3,),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.6),
                                   borderRadius: BorderRadius.circular(4),
@@ -232,7 +242,7 @@ class MovieListPage extends StatelessWidget {
                             if (movie.voteAverage > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 3),
+                                    horizontal: 6, vertical: 3,),
                                 decoration: BoxDecoration(
                                   gradient: AppTheme.accentGradient,
                                   borderRadius: BorderRadius.circular(4),
@@ -241,7 +251,7 @@ class MovieListPage extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.theaters_rounded,
-                                        color: Colors.white, size: 10),
+                                        color: Colors.white, size: 10,),
                                     const SizedBox(width: 3),
                                     Text(
                                       '${movie.voteAverage.toInt()}廳',
