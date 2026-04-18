@@ -83,6 +83,11 @@ class MovieListPage extends StatelessWidget {
                 }
 
                 if (state is MovieLoaded) {
+                  if (state.movies.isEmpty) {
+                    return SliverFillRemaining(
+                      child: _buildEmptyWidget(context),
+                    );
+                  }
                   return SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverGrid(
@@ -334,7 +339,70 @@ class MovieListPage extends StatelessWidget {
     );
   }
 
+  Widget _buildEmptyWidget(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.cardDark,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.movie_filter_rounded,
+                size: 48,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '目前沒有上映中的電影',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '請稍後下拉重新整理再試試看',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<MovieBloc>().add(FetchNowPlaying());
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('重新整理'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentPurple,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildErrorWidget(BuildContext context, String message) {
+    // 過濾系統錯誤訊息，給使用者更友善的提示
+    String userMessage = '無法取得遠端資料，請檢查您的網路連線。';
+    if (message.contains('HTTP')) {
+      userMessage = '伺服器目前無回應，請稍後再試。';
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -350,12 +418,12 @@ class MovieListPage extends StatelessWidget {
               child: const Icon(
                 Icons.wifi_off_rounded,
                 size: 48,
-                color: AppTheme.textSecondary,
+                color: AppTheme.accentPurple,
               ),
             ),
             const SizedBox(height: 20),
             const Text(
-              '載入失敗',
+              '網路連線中斷',
               style: TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
@@ -364,7 +432,7 @@ class MovieListPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              message,
+              userMessage,
               style:
                   const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
               textAlign: TextAlign.center,
@@ -375,7 +443,7 @@ class MovieListPage extends StatelessWidget {
                 context.read<MovieBloc>().add(FetchNowPlaying());
               },
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('重試'),
+              label: const Text('重新連線'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.accentPurple,
                 foregroundColor: Colors.white,
