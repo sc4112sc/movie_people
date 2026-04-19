@@ -10,6 +10,10 @@ import '../models/showtime.dart';
 import '../services/atmovies_service.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import '../services/rating_service.dart';
+import '../widgets/star_rating.dart';
+import '../bloc/auth_bloc.dart';
+import 'login_page.dart';
 
 class CinemaListPage extends StatelessWidget {
   final Movie movie;
@@ -37,6 +41,7 @@ class _CinemaListView extends StatefulWidget {
 
 class _CinemaListViewState extends State<_CinemaListView> {
   String _selectedRegion = 'a02';
+  final RatingService _ratingService = RatingService();
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +119,60 @@ class _CinemaListViewState extends State<_CinemaListView> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                        const SizedBox(height: 12),
+                        BlocBuilder<AuthBloc, AuthState>(
+                          builder: (context, authState) {
+                            return StreamBuilder<Map<String, dynamic>>(
+                              stream: _ratingService.getRatingStream(widget.movie.id),
+                              builder: (context, snapshot) {
+                                String? uid = authState is Authenticated ? authState.user.uid : null;
+                                final data = snapshot.data;
+                                final average = (data?['averageRating'] as num?)?.toDouble() ?? 0.0;
+                                final count = (data?['ratingCount'] as num?)?.toInt() ?? 0;
+                                final userRating = (uid != null && data?['users'] != null && data!['users'][uid] != null)
+                                    ? (data['users'][uid] as num).toDouble()
+                                    : null;
+
+                                return Row(
+                                  children: [
+                                    StarRating(
+                                      rating: average,
+                                      size: 16,
+                                      color: AppTheme.accentPurple,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${average.toStringAsFixed(1)} ($count)',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    ElevatedButton(
+                                      onPressed: () => _showRatingBottomSheet(context, userRating ?? 0.0),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: userRating != null ? AppTheme.accentPurple.withOpacity(0.2) : Colors.white24,
+                                        foregroundColor: userRating != null ? AppTheme.accentPurple : Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                        minimumSize: const Size(60, 28),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        userRating != null ? '已評 ${userRating.toStringAsFixed(1)} ★' : '我要評分',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -419,6 +478,98 @@ class _CinemaListViewState extends State<_CinemaListView> {
         decoration: BoxDecoration(
           color: AppTheme.cardDark,
           borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  void _showRatingBottomSheet(BuildContext context, double initialRating) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) {
+      Get.snackbar(
+        '需要登入',
+        '請先登入後再替這部電影評分！',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.redAccent.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      Get.to(() => const LoginPage());
+      return;
+    }
+
+    final user = authState.user;
+    double currentRating = initialRating == 0.0 ? 5.0 : initialRating;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.cardDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '給予《${widget.movie.title}》評分',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 24),
+            StarRating(
+              rating: currentRating,
+              size: 40,
+              color: AppTheme.accentPurple,
+              onRatingChanged: (rating) {
+                currentRating = rating;
+              },
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                   Get.back(); // close bottom sheet
+                   Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+                   
+                   try {
+                     await _ratingService.submitRating(
+                       movieId: widget.movie.id,
+                       uid: user.uid,
+                       newRating: currentRating,
+                     );
+                     Get.back(); // close loading dialog
+                     Get.snackbar(
+                       '評分成功',
+                       '謝謝您的回饋！',
+                       snackPosition: SnackPosition.TOP,
+                       backgroundColor: AppTheme.accentPurple.withOpacity(0.9),
+                       colorText: Colors.white,
+                       margin: const EdgeInsets.all(16),
+                     );
+                   } catch(e) {
+                     Get.back(); // close loading dialog
+                     Get.snackbar('錯誤', '評分失敗：$e', snackPosition: SnackPosition.TOP);
+                   }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text('確認送出', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
         ),
       ),
     );
