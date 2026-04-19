@@ -8,6 +8,9 @@ import '../bloc/movie_bloc.dart';
 import '../models/movie.dart';
 import '../theme/app_theme.dart';
 import 'cinema_list_page.dart';
+import '../bloc/auth_bloc.dart';
+import 'login_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MovieListPage extends StatelessWidget {
   const MovieListPage({super.key});
@@ -30,6 +33,9 @@ class MovieListPage extends StatelessWidget {
               floating: true,
               snap: true,
               expandedHeight: 100,
+              actions: [
+                _buildProfileButton(context),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
                 title: Row(
@@ -454,6 +460,118 @@ class MovieListPage extends StatelessWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileButton(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is Authenticated) {
+          final user = state.user;
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: GestureDetector(
+              onTap: () => _showProfileBottomSheet(context, user),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: AppTheme.surfaceDark,
+                backgroundImage: user.photoURL != null
+                    ? CachedNetworkImageProvider(user.photoURL!)
+                    : null,
+                child: user.photoURL == null
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+            ),
+          );
+        }
+
+        // Unauthenticated
+        return Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: IconButton(
+            icon: const Icon(Icons.account_circle_outlined, size: 30, color: Colors.white),
+            onPressed: () {
+              Get.to(() => const LoginPage(), transition: Transition.downToUp);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showProfileBottomSheet(BuildContext context, User user) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.cardDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 40,
+              backgroundImage: user.photoURL != null
+                  ? CachedNetworkImageProvider(user.photoURL!)
+                  : null,
+              child: user.photoURL == null
+                  ? const Icon(Icons.person, size: 40)
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              user.displayName ?? '電影人',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              user.email ?? '',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back(); // close bottom sheet
+                  context.read<AuthBloc>().add(SignOutRequested());
+                  Get.snackbar(
+                    '登出成功',
+                    '您已成功登出電影人，期待您再次回來！',
+                    snackPosition: SnackPosition.TOP,
+                    backgroundColor: AppTheme.cardDark.withOpacity(0.95),
+                    colorText: Colors.white,
+                    margin: const EdgeInsets.all(16),
+                    icon: const Icon(Icons.check_circle_outline, color: AppTheme.accentPurple),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent.withOpacity(0.2),
+                  foregroundColor: Colors.redAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  '登出',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
