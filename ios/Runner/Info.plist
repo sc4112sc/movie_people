@@ -61,5 +61,7 @@
 		<string>https</string>
 		<string>http</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>我們需要您的定位權限來為您推薦附近的影城時刻表。</string>
 </dict>
 </plist>

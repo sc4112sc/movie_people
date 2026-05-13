@@ -5,6 +5,7 @@ import '../bloc/movie_bloc.dart';
 import '../services/atmovies_service.dart';
 import '../theme/app_theme.dart';
 import 'movie_list_page.dart';
+import '../services/location_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -119,7 +120,12 @@ class _SplashPageState extends State<SplashPage>
     _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 400));
     _textController.forward();
-    await Future.delayed(const Duration(milliseconds: 2200));
+
+    // 在動畫期間並行請求定位權限
+    final locationService = LocationService();
+    await locationService.requestPermission();
+
+    await Future.delayed(const Duration(milliseconds: 1200));
     _navigateToHome();
   }
 

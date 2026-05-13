@@ -16,6 +16,7 @@ import '../services/rating_service.dart';
 import '../widgets/star_rating.dart';
 import '../bloc/auth_bloc.dart';
 import 'login_page.dart';
+import '../services/location_service.dart';
 
 class CinemaListPage extends StatelessWidget {
   final Movie movie;
@@ -44,6 +45,37 @@ class _CinemaListView extends StatefulWidget {
 class _CinemaListViewState extends State<_CinemaListView> {
   String _selectedRegion = 'a02';
   final RatingService _ratingService = RatingService();
+  final LocationService _locationService = LocationService();
+  bool _isLocating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    setState(() => _isLocating = true);
+    
+    final city = await _locationService.getCurrentCity();
+    if (city != null) {
+      final regionCode = LocationService.mapCityToRegionCode(city, AtmoviesService.regionCodes);
+      if (regionCode != null && regionCode != _selectedRegion) {
+        if (mounted) {
+          setState(() {
+            _selectedRegion = regionCode;
+            _isLocating = false;
+          });
+          context.read<CinemaBloc>().add(FetchCinemas(widget.movie, regionCode: regionCode));
+        }
+        return;
+      }
+    }
+    
+    if (mounted) {
+      setState(() => _isLocating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,15 +237,35 @@ class _CinemaListViewState extends State<_CinemaListView> {
             ),
           ),
 
-          // Region selector
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 56,
-              child: ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                scrollDirection: Axis.horizontal,
-                children: AtmoviesService.regionCodes.entries.map((entry) {
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 56,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              scrollDirection: Axis.horizontal,
+              children: [
+                if (_isLocating)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Chip(
+                      avatar: const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.accentPurple,
+                        ),
+                      ),
+                      label: const Text('定位中...'),
+                      backgroundColor: AppTheme.cardDark,
+                      labelStyle: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 12,
+                      ),
+                      side: const BorderSide(color: AppTheme.dividerColor),
+                    ),
+                  ),
+                ...AtmoviesService.regionCodes.entries.map((entry) {
                   final isSelected = _selectedRegion == entry.value;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -246,9 +298,10 @@ class _CinemaListViewState extends State<_CinemaListView> {
                     ),
                   );
                 }).toList(),
-              ),
+              ],
             ),
           ),
+        ),
 
           // Section title
           SliverToBoxAdapter(
