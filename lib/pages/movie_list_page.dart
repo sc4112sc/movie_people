@@ -7,11 +7,11 @@ import 'package:get/get.dart';
 import '../bloc/movie_bloc.dart';
 import '../models/movie.dart';
 import '../theme/app_theme.dart';
-import 'cinema_list_page.dart';
+
 import '../bloc/auth_bloc.dart';
 import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'movie_detail_page.dart';
 class MovieListPage extends StatelessWidget {
   const MovieListPage({super.key});
 
@@ -139,7 +139,7 @@ class MovieListPage extends StatelessWidget {
       child: GestureDetector(
         onTap: () {
           Get.to(
-            () => CinemaListPage(movie: movie),
+            () => MovieDetailPage(movie: movie, index: index),
             transition: Transition.cupertino,
           );
         },

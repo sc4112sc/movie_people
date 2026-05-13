@@ -1,5 +1,6 @@
-import '../models/cinema.dart';
-import '../models/showtime.dart';
+ import '../models/cinema.dart';
+ import '../models/showtime.dart';
+import 'atmovies_service.dart';
 
 class MockShowtimeService {
   static final List<Cinema> _cinemas = [
@@ -101,6 +102,7 @@ class MockShowtimeService {
   ];
 
   static final List<String> _formats = ['2D', '3D', 'IMAX', 'IMAX 3D', '4DX'];
+  static final List<String> _languages = ['英語', '中文', '國語', '日語', ''];
   static final List<String> _halls = [
     '1廳',
     '2廳',
@@ -150,6 +152,8 @@ class MockShowtimeService {
         time: DateTime(date.year, date.month, date.day, hour, minute),
         hallName: _halls[(i + movieId) % _halls.length],
         format: formatIndex < 2 ? _formats[0] : _formats[formatIndex],
+        language: _languages[(i + movieId) % _languages.length],
+        bookingUrl: AtmoviesService.getBookingUrl(_cinemas.firstWhere((c) => c.id == cinemaId).name),
       ));
     }
 

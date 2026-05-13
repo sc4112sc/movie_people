@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart' hide Transition;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../bloc/cinema_bloc.dart';
 import '../models/movie.dart';
 import '../models/cinema.dart';
@@ -123,13 +125,22 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         BlocBuilder<AuthBloc, AuthState>(
                           builder: (context, authState) {
                             return StreamBuilder<Map<String, dynamic>>(
-                              stream: _ratingService.getRatingStream(widget.movie.id),
+                              stream: _ratingService
+                                  .getRatingStream(widget.movie.id),
                               builder: (context, snapshot) {
-                                String? uid = authState is Authenticated ? authState.user.uid : null;
+                                String? uid = authState is Authenticated
+                                    ? authState.user.uid
+                                    : null;
                                 final data = snapshot.data;
-                                final average = (data?['averageRating'] as num?)?.toDouble() ?? 0.0;
-                                final count = (data?['ratingCount'] as num?)?.toInt() ?? 0;
-                                final userRating = (uid != null && data?['users'] != null && data!['users'][uid] != null)
+                                final average = (data?['averageRating'] as num?)
+                                        ?.toDouble() ??
+                                    0.0;
+                                final count =
+                                    (data?['ratingCount'] as num?)?.toInt() ??
+                                        0;
+                                final userRating = (uid != null &&
+                                        data?['users'] != null &&
+                                        data!['users'][uid] != null)
                                     ? (data['users'][uid] as num).toDouble()
                                     : null;
 
@@ -151,20 +162,33 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                     ),
                                     const Spacer(),
                                     ElevatedButton(
-                                      onPressed: () => _showRatingBottomSheet(context, userRating ?? 0.0),
+                                      onPressed: () => _showRatingBottomSheet(
+                                          context, userRating ?? 0.0),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: userRating != null ? AppTheme.accentPurple.withOpacity(0.2) : Colors.white24,
-                                        foregroundColor: userRating != null ? AppTheme.accentPurple : Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                        backgroundColor: userRating != null
+                                            ? AppTheme.accentPurple
+                                                .withOpacity(0.2)
+                                            : Colors.white24,
+                                        foregroundColor: userRating != null
+                                            ? AppTheme.accentPurple
+                                            : Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 0),
                                         minimumSize: const Size(60, 28),
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                       ),
                                       child: Text(
-                                        userRating != null ? '已評 ${userRating.toStringAsFixed(1)} ★' : '我要評分',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        userRating != null
+                                            ? '已評 ${userRating.toStringAsFixed(1)} ★'
+                                            : '我要評分',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ],
@@ -343,11 +367,22 @@ class _CinemaListViewState extends State<_CinemaListView> {
   }
 
   Widget _buildCinemaCard(Cinema cinema, List<Showtime> showtimes) {
-    // Group by format
-    final byFormat = <String, List<Showtime>>{};
+    final now = DateTime.now();
+    final todayShowtimes = <Showtime>[];
+    final tomorrowShowtimes = <Showtime>[];
+
     for (final st in showtimes) {
-      byFormat.putIfAbsent(st.format, () => []).add(st);
+      if (st.time.year == now.year &&
+          st.time.month == now.month &&
+          st.time.day == now.day) {
+        todayShowtimes.add(st);
+      } else {
+        tomorrowShowtimes.add(st);
+      }
     }
+
+    if (todayShowtimes.isEmpty && tomorrowShowtimes.isEmpty)
+      return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -390,46 +425,127 @@ class _CinemaListViewState extends State<_CinemaListView> {
             ],
           ),
           const SizedBox(height: 14),
-          // Showtimes by format
-          ...byFormat.entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (entry.key != '2D')
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _getFormatColor(entry.key).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          entry.key,
-                          style: TextStyle(
-                            color: _getFormatColor(entry.key),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+
+          if (todayShowtimes.isNotEmpty)
+            _buildShowtimesByFormat(todayShowtimes),
+
+          if (tomorrowShowtimes.isNotEmpty) ...[
+            Center(
+              child: TextButton(
+                onPressed: () =>
+                    _showTomorrowDialog(context, cinema, tomorrowShowtimes),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.textSecondary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '明(${DateFormat('MM/dd').format(tomorrowShowtimes.first.time)})場次',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w500),
                     ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: entry.value.map((st) {
-                      final timeStr = DateFormat('HH:mm').format(st.time);
-                      final isPast = st.time.isBefore(DateTime.now());
-                      return Container(
+                    const SizedBox(width: 4),
+                    const Icon(Icons.keyboard_double_arrow_down_rounded,
+                        size: 14),
+                  ],
+                ),
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowtimesByFormat(List<Showtime> showtimes) {
+    if (showtimes.isEmpty) return const SizedBox.shrink();
+
+    final byFormat = <String, List<Showtime>>{};
+    for (final st in showtimes) {
+      // 使用 displayLabel 分組（格式+語言），再依據廳名細分
+      final baseLabel = st.displayLabel;
+      final groupKey = st.hallName.isNotEmpty ? '$baseLabel ${st.hallName}' : baseLabel;
+      byFormat.putIfAbsent(groupKey, () => []).add(st);
+    }
+
+    for (final format in byFormat.keys) {
+      byFormat[format]!.sort((a, b) => a.time.compareTo(b.time));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: byFormat.entries.map((entry) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getFormatColor(entry.key).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    entry.key,
+                    style: TextStyle(
+                      color: _getFormatColor(entry.key),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: entry.value.map((st) {
+                  final timeStr = DateFormat('HH:mm').format(st.time);
+                  final isPast = st.time.isBefore(DateTime.now());
+                  return Material(
+                    color: isPast
+                        ? AppTheme.surfaceDark.withOpacity(0.5)
+                        : AppTheme.surfaceDark,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      onTap: isPast
+                          ? null
+                          : () async {
+                              if (st.bookingUrl != null) {
+                                try {
+                                  final uri = Uri.parse(st.bookingUrl!);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri,
+                                        mode: LaunchMode.externalApplication);
+                                    return;
+                                  }
+                                } catch (e) {
+                                  print('Error: $e');
+                                }
+                              }
+                              Get.snackbar(
+                                '無法開啟訂票頁面',
+                                '請手動前往影城官網訂票',
+                                backgroundColor:
+                                    Colors.redAccent.withOpacity(0.9),
+                                colorText: Colors.white,
+                                snackPosition: SnackPosition.BOTTOM,
+                                margin: const EdgeInsets.all(16),
+                              );
+                            },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isPast
-                              ? AppTheme.surfaceDark.withOpacity(0.5)
-                              : AppTheme.surfaceDark,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isPast
@@ -437,35 +553,138 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                 : AppTheme.accentPurple.withOpacity(0.3),
                           ),
                         ),
-                        child: Text(
-                          timeStr,
-                          style: TextStyle(
-                            color: isPast
-                                ? AppTheme.textSecondary
-                                : AppTheme.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  timeStr,
+                                  style: TextStyle(
+                                    color: isPast
+                                        ? AppTheme.textSecondary
+                                        : AppTheme.textPrimary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (!isPast) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.confirmation_num_rounded,
+                                    size: 10,
+                                    color: AppTheme.accentPurple
+                                        .withOpacity(0.7),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (st.hallName.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  st.hallName,
+                                  style: TextStyle(
+                                    color: isPast
+                                        ? AppTheme.textSecondary.withOpacity(0.7)
+                                        : _getFormatColor(st.hallName),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _showTomorrowDialog(
+      BuildContext context, Cinema cinema, List<Showtime> showtimes) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.cardDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.calendar_month_rounded,
+                      color: AppTheme.accentPurple),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${cinema.name} - ${DateFormat('MM/dd').format(showtimes.first.time)} 場次',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
                   ),
+                  IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      onPressed: () => Get.back()),
                 ],
               ),
-            );
-          }),
-        ],
+              const SizedBox(height: 16),
+              _buildShowtimesByFormat(showtimes),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
       ),
+      isScrollControlled: true,
     );
   }
 
   Color _getFormatColor(String format) {
-    if (format.contains('IMAX')) return AppTheme.accentCyan;
-    if (format.contains('3D')) return AppTheme.accentBlue;
-    if (format.contains('4DX')) return const Color(0xFFEF4444);
-    if (format.contains('SCREEN X')) return const Color(0xFFF59E0B);
-    if (format.contains('Dolby')) return const Color(0xFF10B981);
-    return AppTheme.accentPurple;
+    final upper = format.toUpperCase();
+    if (upper.contains('IMAX')) return AppTheme.accentCyan;
+    if (upper.contains('3D')) return AppTheme.accentBlue;
+    if (upper.contains('4DX') || upper.contains('MX4D'))
+      return const Color(0xFFEF4444); // 體感特技紅
+    if (upper.contains('SCREEN X') || upper.contains('SCREENX'))
+      return const Color(0xFFF59E0B);
+    if (upper.contains('DOLBY')) return const Color(0xFF10B981);
+    if (upper.contains('LUXE')) return const Color(0xFF38BDF8); // 巨幕天藍
+    if (upper.contains('BOOM')) return const Color(0xFFF97316); // 震動亮度橘
+
+    // 特殊影廳
+    if (upper.contains('TITAN')) return const Color(0xFFEAB308); // 黃色
+    if (upper.contains('MUCROWN')) return const Color(0xFFD946EF); // 亮粉紫
+    if (upper.contains('GC') || upper.contains('GOLD CLASS'))
+      return const Color(0xFFF59E0B); // 琥珀色
+    if (upper.contains('MAPPA')) return const Color(0xFF84CC16); // 萊姆綠
+    if (upper.contains('LUVNE')) return const Color(0xFFF43F5E); // 玫瑰紅
+    if (upper.contains('PRESTIGE')) return const Color(0xFFB45309); // 尊爵金棕
+    if (upper.contains('D-BOX') || upper.contains('DBOX'))
+      return const Color(0xFF9333EA); // 體感紫
+
+    // 語言
+    if (upper.contains('國語') || upper.contains('中文') || upper.contains('國文'))
+      return const Color(0xFFEC4899); // 粉色
+    if (upper.contains('日語') || upper.contains('日文'))
+      return const Color(0xFF6366F1); // 靛藍色
+    if (upper.contains('韓語') || upper.contains('韓文'))
+      return const Color(0xFF0EA5E9); // 天藍色
+    if (upper.contains('台語')) return const Color(0xFF14B8A6); // 天青綠色
+
+    return const Color(0xFF94A3B8);
   }
 
   Widget _buildShimmerItem() {
@@ -535,28 +754,30 @@ class _CinemaListViewState extends State<_CinemaListView> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                   Get.back(); // close bottom sheet
-                   Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
-                   
-                   try {
-                     await _ratingService.submitRating(
-                       movieId: widget.movie.id,
-                       uid: user.uid,
-                       newRating: currentRating,
-                     );
-                     Get.back(); // close loading dialog
-                     Get.snackbar(
-                       '評分成功',
-                       '謝謝您的回饋！',
-                       snackPosition: SnackPosition.TOP,
-                       backgroundColor: AppTheme.accentPurple.withOpacity(0.9),
-                       colorText: Colors.white,
-                       margin: const EdgeInsets.all(16),
-                     );
-                   } catch(e) {
-                     Get.back(); // close loading dialog
-                     Get.snackbar('錯誤', '評分失敗：$e', snackPosition: SnackPosition.TOP);
-                   }
+                  Get.back(); // close bottom sheet
+                  Get.dialog(const Center(child: CircularProgressIndicator()),
+                      barrierDismissible: false);
+
+                  try {
+                    await _ratingService.submitRating(
+                      movieId: widget.movie.id,
+                      uid: user.uid,
+                      newRating: currentRating,
+                    );
+                    Get.back(); // close loading dialog
+                    Get.snackbar(
+                      '評分成功',
+                      '謝謝您的回饋！',
+                      snackPosition: SnackPosition.TOP,
+                      backgroundColor: AppTheme.accentPurple.withOpacity(0.9),
+                      colorText: Colors.white,
+                      margin: const EdgeInsets.all(16),
+                    );
+                  } catch (e) {
+                    Get.back(); // close loading dialog
+                    Get.snackbar('錯誤', '評分失敗：$e',
+                        snackPosition: SnackPosition.TOP);
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentPurple,
@@ -566,7 +787,8 @@ class _CinemaListViewState extends State<_CinemaListView> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('確認送出', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text('確認送出',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],

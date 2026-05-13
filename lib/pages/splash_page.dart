@@ -125,14 +125,13 @@ class _SplashPageState extends State<SplashPage>
 
   void _navigateToHome() {
     if (!mounted) return;
+    
+    // 觸發首次抓取資料
+    context.read<MovieBloc>().add(FetchNowPlaying());
+    
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            BlocProvider(
-          create: (context) =>
-              MovieBloc(AtmoviesService())..add(FetchNowPlaying()),
-          child: const MovieListPage(),
-        ),
+        pageBuilder: (context, animation, secondaryAnimation) => const MovieListPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(

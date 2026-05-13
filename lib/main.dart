@@ -9,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/auth_bloc.dart';
 import 'services/auth_service.dart';
+import 'bloc/movie_bloc.dart';
+import 'services/atmovies_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_TW', null);
@@ -27,6 +29,9 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(AuthService())..add(CheckAuthStatus()),
+        ),
+        BlocProvider<MovieBloc>(
+          create: (context) => MovieBloc(AtmoviesService()),
         ),
       ],
       child: GetMaterialApp(

@@ -7,6 +7,8 @@ class Movie {
   final double voteAverage;
   final String releaseDate;
   final List<int> genreIds;
+  final String? director;
+  final List<String>? cast;
   final String? atmoviesId;
 
   Movie({
@@ -18,6 +20,8 @@ class Movie {
     required this.voteAverage,
     required this.releaseDate,
     required this.genreIds,
+    this.director,
+    this.cast,
     this.atmoviesId,
   });
 
@@ -45,6 +49,8 @@ class Movie {
       voteAverage: (json['vote_average'] ?? 0).toDouble(),
       releaseDate: json['release_date'] ?? '',
       genreIds: List<int>.from(json['genre_ids'] ?? []),
+      director: json['director'],
+      cast: json['cast'] != null ? List<String>.from(json['cast']) : null,
     );
   }
 }
