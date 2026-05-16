@@ -552,11 +552,6 @@ class AtmoviesService {
   static String _getPosterUrl(String movieId) {
     return 'https://www.atmovies.com.tw/photo101/$movieId/pl_$movieId.jpg';
   }
-
-  /// 取得所有地區名稱
-  static List<String> getRegions() {
-    return regionCodes.keys.toList();
-  }
 }
 
 class _ParsedVersion {

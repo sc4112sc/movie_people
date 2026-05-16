@@ -38,19 +38,4 @@ class Movie {
     if (backdropPath!.startsWith('http')) return backdropPath!;
     return 'https://image.tmdb.org/t/p/w780$backdropPath';
   }
-
-  factory Movie.fromJson(Map<String, dynamic> json) {
-    return Movie(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      posterPath: json['poster_path'],
-      backdropPath: json['backdrop_path'],
-      overview: json['overview'] ?? '',
-      voteAverage: (json['vote_average'] ?? 0).toDouble(),
-      releaseDate: json['release_date'] ?? '',
-      genreIds: List<int>.from(json['genre_ids'] ?? []),
-      director: json['director'],
-      cast: json['cast'] != null ? List<String>.from(json['cast']) : null,
-    );
-  }
 }
