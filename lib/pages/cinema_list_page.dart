@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' hide Transition;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -17,6 +18,8 @@ import '../widgets/star_rating.dart';
 import '../bloc/auth_bloc.dart';
 import 'login_page.dart';
 import '../services/location_service.dart';
+import '../services/bonus_service.dart';
+import '../models/bonus_report.dart';
 
 class CinemaListPage extends StatelessWidget {
   final Movie movie;
@@ -46,32 +49,56 @@ class _CinemaListViewState extends State<_CinemaListView> {
   String _selectedRegion = 'a02';
   final RatingService _ratingService = RatingService();
   final LocationService _locationService = LocationService();
+  final BonusService _bonusService = BonusService();
   bool _isLocating = false;
+  Map<String, BonusReport> _bonusSummary = {};
+  StreamSubscription? _bonusSubscription;
 
   @override
   void initState() {
     super.initState();
     _initLocation();
+    _initBonusStream();
+  }
+
+  @override
+  void dispose() {
+    _bonusSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _initBonusStream() {
+    _bonusSubscription?.cancel();
+    _bonusSubscription = _bonusService
+        .getMovieBonusSummary(widget.movie.id.toString())
+        .listen((summary) {
+      if (mounted) {
+        setState(() => _bonusSummary = summary);
+      }
+    });
   }
 
   Future<void> _initLocation() async {
     setState(() => _isLocating = true);
-    
+
     final city = await _locationService.getCurrentCity();
     if (city != null) {
-      final regionCode = LocationService.mapCityToRegionCode(city, AtmoviesService.regionCodes);
+      final regionCode = LocationService.mapCityToRegionCode(
+          city, AtmoviesService.regionCodes);
       if (regionCode != null && regionCode != _selectedRegion) {
         if (mounted) {
           setState(() {
             _selectedRegion = regionCode;
             _isLocating = false;
           });
-          context.read<CinemaBloc>().add(FetchCinemas(widget.movie, regionCode: regionCode));
+          context
+              .read<CinemaBloc>()
+              .add(FetchCinemas(widget.movie, regionCode: regionCode));
         }
         return;
       }
     }
-    
+
     if (mounted) {
       setState(() => _isLocating = false);
     }
@@ -237,71 +264,72 @@ class _CinemaListViewState extends State<_CinemaListView> {
             ),
           ),
 
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 56,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              scrollDirection: Axis.horizontal,
-              children: [
-                if (_isLocating)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Chip(
-                      avatar: const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.accentPurple,
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 56,
+              child: ListView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                scrollDirection: Axis.horizontal,
+                children: [
+                  if (_isLocating)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Chip(
+                        avatar: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.accentPurple,
+                          ),
+                        ),
+                        label: Text('定位中...'),
+                        backgroundColor: AppTheme.cardDark,
+                        labelStyle: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                        side: BorderSide(color: AppTheme.dividerColor),
+                      ),
+                    ),
+                  ...AtmoviesService.regionCodes.entries.map((entry) {
+                    final isSelected = _selectedRegion == entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(entry.key),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() => _selectedRegion = entry.value);
+                            context.read<CinemaBloc>().add(
+                                  ChangeRegion(widget.movie, entry.value),
+                                );
+                          }
+                        },
+                        selectedColor: AppTheme.accentPurple.withOpacity(0.3),
+                        backgroundColor: AppTheme.cardDark,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? AppTheme.accentPurple
+                              : AppTheme.textSecondary,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppTheme.accentPurple
+                              : AppTheme.dividerColor,
                         ),
                       ),
-                      label: const Text('定位中...'),
-                      backgroundColor: AppTheme.cardDark,
-                      labelStyle: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                      ),
-                      side: const BorderSide(color: AppTheme.dividerColor),
-                    ),
-                  ),
-                ...AtmoviesService.regionCodes.entries.map((entry) {
-                  final isSelected = _selectedRegion == entry.value;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(entry.key),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() => _selectedRegion = entry.value);
-                          context.read<CinemaBloc>().add(
-                                ChangeRegion(widget.movie, entry.value),
-                              );
-                        }
-                      },
-                      selectedColor: AppTheme.accentPurple.withOpacity(0.3),
-                      backgroundColor: AppTheme.cardDark,
-                      labelStyle: TextStyle(
-                        color: isSelected
-                            ? AppTheme.accentPurple
-                            : AppTheme.textSecondary,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                        fontSize: 13,
-                      ),
-                      side: BorderSide(
-                        color: isSelected
-                            ? AppTheme.accentPurple
-                            : AppTheme.dividerColor,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ],
+                    );
+                  }).toList(),
+                ],
+              ),
             ),
           ),
-        ),
 
           // Section title
           SliverToBoxAdapter(
@@ -355,9 +383,9 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         const Icon(Icons.error_outline,
                             size: 48, color: AppTheme.textSecondary),
                         const SizedBox(height: 12),
-                        Text(
+                        const Text(
                           '載入失敗',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppTheme.textPrimary, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
@@ -395,13 +423,16 @@ class _CinemaListViewState extends State<_CinemaListView> {
                   );
                 }
 
+                final bonusSummary = _bonusSummary;
+
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final entry = entries[index];
-                        return _buildCinemaCard(entry.key, entry.value);
+                        return _buildCinemaCard(entry.key, entry.value,
+                            bonusSummary[entry.key.name]);
                       },
                       childCount: entries.length,
                     ),
@@ -419,7 +450,8 @@ class _CinemaListViewState extends State<_CinemaListView> {
     );
   }
 
-  Widget _buildCinemaCard(Cinema cinema, List<Showtime> showtimes) {
+  Widget _buildCinemaCard(
+      Cinema cinema, List<Showtime> showtimes, BonusReport? lastReport) {
     final now = DateTime.now();
     final todayShowtimes = <Showtime>[];
     final tomorrowShowtimes = <Showtime>[];
@@ -448,8 +480,9 @@ class _CinemaListViewState extends State<_CinemaListView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cinema name
+          // Cinema name & Bonus Status
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 40,
@@ -466,13 +499,20 @@ class _CinemaListViewState extends State<_CinemaListView> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  cinema.name,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      cinema.name,
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildBonusStatus(lastReport, cinema.name),
+                  ],
                 ),
               ),
             ],
@@ -522,7 +562,8 @@ class _CinemaListViewState extends State<_CinemaListView> {
     for (final st in showtimes) {
       // 使用 displayLabel 分組（格式+語言），再依據廳名細分
       final baseLabel = st.displayLabel;
-      final groupKey = st.hallName.isNotEmpty ? '$baseLabel ${st.hallName}' : baseLabel;
+      final groupKey =
+          st.hallName.isNotEmpty ? '$baseLabel ${st.hallName}' : baseLabel;
       byFormat.putIfAbsent(groupKey, () => []).add(st);
     }
 
@@ -627,8 +668,8 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                   Icon(
                                     Icons.confirmation_num_rounded,
                                     size: 10,
-                                    color: AppTheme.accentPurple
-                                        .withOpacity(0.7),
+                                    color:
+                                        AppTheme.accentPurple.withOpacity(0.7),
                                   ),
                                 ],
                               ],
@@ -640,7 +681,8 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                   st.hallName,
                                   style: TextStyle(
                                     color: isPast
-                                        ? AppTheme.textSecondary.withOpacity(0.7)
+                                        ? AppTheme.textSecondary
+                                            .withOpacity(0.7)
                                         : _getFormatColor(st.hallName),
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
@@ -848,5 +890,398 @@ class _CinemaListViewState extends State<_CinemaListView> {
         ),
       ),
     );
+  }
+
+  Widget _buildBonusStatus(BonusReport? lastReport, String cinemaName) {
+    if (lastReport == null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showBonusReportDialog(cinemaName),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_circle_outline_rounded,
+                    size: 14, color: AppTheme.accentPurple.withOpacity(0.7)),
+                const SizedBox(width: 6),
+                Text(
+                  '回報特典狀態',
+                  style: TextStyle(
+                    color: AppTheme.accentPurple.withOpacity(0.8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final isAvailable = lastReport.isAvailable;
+    final timeStr = _formatRelativeTime(lastReport.timestamp);
+    final statusColor = isAvailable ? Colors.green : Colors.red;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showBonusReportDialog(cinemaName),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: statusColor.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isAvailable ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                size: 14,
+                color: statusColor,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  isAvailable ? '目前有特典' : '目前已無特典',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 1,
+                height: 10,
+                color: statusColor.withOpacity(0.2),
+              ),
+              const SizedBox(width: 8),
+              if (lastReport.userPhotoUrl != null) ...[
+                CircleAvatar(
+                  radius: 7,
+                  backgroundImage: CachedNetworkImageProvider(lastReport.userPhotoUrl!),
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                timeStr,
+                style: TextStyle(
+                  color: statusColor.withOpacity(0.7),
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 14,
+                color: statusColor.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatRelativeTime(DateTime timestamp) {
+    final diff = DateTime.now().difference(timestamp);
+    if (diff.inMinutes < 60) return '${diff.inMinutes} 分鐘前';
+    if (diff.inHours < 24) return '${diff.inHours} 小時前';
+    return '${diff.inDays} 天前';
+  }
+
+  void _showBonusReportDialog(String cinemaName) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) {
+      Get.snackbar(
+        '需要登入',
+        '請先登入後再回報特典狀態！',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: AppTheme.accentPurple.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      Get.to(() => const LoginPage());
+      return;
+    }
+
+    final bool isAuthenticated = true; // Already checked above
+    final String? currentUserEmail = authState.user.email;
+
+    Get.bottomSheet(
+      SafeArea(
+        child: Container(
+          constraints: BoxConstraints(maxHeight: Get.height * 0.8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: const BoxDecoration(
+            color: AppTheme.surfaceDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Column(
+                        children: [
+                          const Text(
+                            '回報特典狀態',
+                            style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            cinemaName,
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary, fontSize: 14),
+                          ),
+                          if (isAuthenticated && currentUserEmail != null) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  radius: 12,
+                                  backgroundImage: (authState as Authenticated).user.photoURL != null
+                                      ? CachedNetworkImageProvider(authState.user.photoURL!)
+                                      : null,
+                                  child: authState.user.photoURL == null
+                                      ? const Icon(Icons.person, size: 14)
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '將以 ${_maskEmail(currentUserEmail)} 身份回報',
+                                  style: TextStyle(
+                                      color: AppTheme.accentPurple.withOpacity(0.6),
+                                      fontSize: 11,
+                                      fontStyle: FontStyle.italic),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Recent Reports Section
+                    Row(
+                      children: [
+                        const Text(
+                          '近期回報紀錄',
+                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Divider(color: AppTheme.dividerColor.withOpacity(0.5))),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<List<BonusReport>>(
+                      stream: _bonusService.getReports(widget.movie.id.toString(), cinemaName),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: Text('目前尚無近期紀錄', style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.3), fontSize: 12)),
+                            ),
+                          );
+                        }
+                        
+                        return Column(
+                          children: snapshot.data!.map((report) {
+                            final isAvailable = report.isAvailable;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: isAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                    backgroundImage: report.userPhotoUrl != null ? CachedNetworkImageProvider(report.userPhotoUrl!) : null,
+                                    child: report.userPhotoUrl == null ? Icon(Icons.person, size: 16, color: isAvailable ? Colors.green : Colors.red) : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              isAvailable ? Icons.check_circle_outline : Icons.cancel_outlined,
+                                              size: 12,
+                                              color: isAvailable ? Colors.green : Colors.red,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              isAvailable ? '還有特典' : '已無特典',
+                                              style: TextStyle(
+                                                color: isAvailable ? Colors.green : Colors.red,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Text(
+                                              _formatRelativeTime(report.timestamp),
+                                              style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.5), fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          report.userEmail != null ? _maskEmail(report.userEmail!) : '電影人',
+                                          style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.4), fontSize: 10),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildReportButton(
+                    title: '還有特典',
+                    subtitle: '現場仍有存貨',
+                    icon: Icons.check_circle_rounded,
+                    color: Colors.green,
+                    onTap: () => _submitReport(cinemaName, true),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildReportButton(
+                    title: '已無特典',
+                    subtitle: '現場已發送完畢',
+                    icon: Icons.cancel_rounded,
+                    color: Colors.red,
+                    onTap: () => _submitReport(cinemaName, false),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ));
+  }
+
+  Widget _buildReportButton({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(16),
+          color: color.withOpacity(0.05),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 12),
+            Text(title,
+                style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitReport(String cinemaName, bool isAvailable) async {
+    final authState = context.read<AuthBloc>().state;
+    String? userId;
+    String? userEmail;
+    String? userPhotoUrl;
+
+    if (authState is Authenticated) {
+      userId = authState.user.uid;
+      userEmail = authState.user.email;
+      userPhotoUrl = authState.user.photoURL;
+    }
+
+    final report = BonusReport(
+      id: '', // Will be set by Firebase
+      movieId: widget.movie.id.toString(),
+      cinemaName: cinemaName,
+      isAvailable: isAvailable,
+      timestamp: DateTime.now(),
+      userId: userId,
+      userEmail: userEmail,
+      userPhotoUrl: userPhotoUrl,
+    );
+
+    try {
+      await _bonusService.submitReport(report);
+      Get.back();
+      Get.snackbar(
+        '回報成功',
+        '感謝您的分享，讓大家能掌握即時資訊！',
+        backgroundColor: Colors.green.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    } catch (e) {
+      Get.snackbar('回報失敗', '發生錯誤，請稍後再試', backgroundColor: Colors.red);
+    }
+  }
+
+  String _maskEmail(String email) {
+    if (!email.contains('@')) return email;
+    final parts = email.split('@');
+    if (parts[0].length <= 2) return '***@${parts[1]}';
+    return '${parts[0].substring(0, 2)}***@${parts[1]}';
   }
 }
