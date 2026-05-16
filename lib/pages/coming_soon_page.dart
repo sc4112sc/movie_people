@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 import '../bloc/movie_bloc.dart';
 import '../models/movie.dart';
 import '../theme/app_theme.dart';
+import '../services/reminder_service.dart';
 
 class ComingSoonPage extends StatefulWidget {
   const ComingSoonPage({super.key});
@@ -20,6 +21,7 @@ class ComingSoonPage extends StatefulWidget {
 class _ComingSoonPageState extends State<ComingSoonPage> {
   late PageController _pageController;
   double _currentPage = 0.0;
+  final ReminderService _reminderService = ReminderService();
 
   @override
   void initState() {
@@ -148,7 +150,6 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
       backgroundColor: AppTheme.primaryDark,
       body: Container(
         decoration: BoxDecoration(
-          // 改用優雅的幽微漸層取代海報背景
           gradient: RadialGradient(
             center: const Alignment(0, -0.3),
             radius: 1.2,
@@ -249,6 +250,8 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
     double relativePosition = index - _currentPage;
     double scale = 1.0 - (relativePosition.abs() * 0.2).clamp(0.0, 0.2);
     double opacity = 1.0 - (relativePosition.abs() * 0.6).clamp(0.0, 0.8);
+    
+    final bool isReminded = _reminderService.isReminded(movie.atmoviesId ?? movie.id.toString());
 
     return Center(
       child: Opacity(
@@ -256,7 +259,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
         child: Transform.scale(
           scale: scale,
           child: AspectRatio(
-            aspectRatio: 0.5, // 極致修長比例
+            aspectRatio: 0.5,
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
               decoration: BoxDecoration(
@@ -365,20 +368,59 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Container(
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: isReminded 
+                                      ? AppTheme.accentPurple.withOpacity(0.3) 
+                                      : Colors.white.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(
+                                    color: isReminded ? AppTheme.accentPurple : Colors.transparent,
+                                    width: 1,
+                                  ),
                                 ),
                                 child: IconButton(
-                                  onPressed: () {
-                                    Get.snackbar('提醒', '上映提醒功能開發中！', 
-                                      snackPosition: SnackPosition.TOP,
-                                      backgroundColor: Colors.white24,
-                                      colorText: Colors.white,
-                                    );
+                                  onPressed: () async {
+                                    final status = await _reminderService.toggleReminder(movie);
+                                    if (mounted) {
+                                      setState(() {});
+                                      
+                                      String title = '';
+                                      String message = '';
+                                      Color bgColor = Colors.black87;
+
+                                      switch (status) {
+                                        case ReminderStatus.scheduled:
+                                          title = '提醒已設定';
+                                          message = '將在上映當天早上 9:00 提醒您！';
+                                          bgColor = AppTheme.accentPurple.withOpacity(0.8);
+                                          break;
+                                        case ReminderStatus.cancelled:
+                                          title = '提醒已取消';
+                                          message = '已從提醒清單中移除';
+                                          break;
+                                        case ReminderStatus.failed:
+                                          title = '設定失敗';
+                                          message = '請稍後再試或檢查通知權限';
+                                          bgColor = Colors.red.withOpacity(0.8);
+                                          break;
+                                      }
+
+                                      Get.snackbar(
+                                        title,
+                                        message,
+                                        snackPosition: SnackPosition.TOP,
+                                        backgroundColor: bgColor,
+                                        colorText: Colors.white,
+                                        duration: const Duration(seconds: 2),
+                                      );
+                                    }
                                   },
-                                  icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                                  icon: Icon(
+                                    isReminded ? Icons.notifications_active_rounded : Icons.notifications_none_rounded, 
+                                    color: isReminded ? AppTheme.accentPurple : Colors.white
+                                  ),
                                 ),
                               ),
                             ],

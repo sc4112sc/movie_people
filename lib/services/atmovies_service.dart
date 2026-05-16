@@ -572,12 +572,29 @@ class AtmoviesService {
     print('🔍 [AtmoviesService] 找到 ${listItems.length} 個結構區塊');
 
     String currentDate = '';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
     for (final node in listItems) {
       if (node.localName == 'h2' || node.className.contains('filmListDate')) {
         currentDate = node.text.trim().replaceAll('/', '-');
         print('📅 [AtmoviesService] 偵測到上映日期: $currentDate');
       } else {
+        // 如果這個區塊的日期早於今天，則跳過
+        if (currentDate.isNotEmpty) {
+          try {
+            final parts = currentDate.split('-');
+            if (parts.length == 3) {
+              final releaseDate = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+              if (releaseDate.isBefore(today)) {
+                print('⏭️ [AtmoviesService] 跳過已上映區塊: $currentDate');
+                continue;
+              }
+            }
+          } catch (e) {
+            // 解析失敗則不跳過，保留資料
+          }
+        }
         final links = node.querySelectorAll('li a');
         if (links.isEmpty) continue;
         

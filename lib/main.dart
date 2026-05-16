@@ -11,9 +11,12 @@ import 'bloc/auth_bloc.dart';
 import 'services/auth_service.dart';
 import 'bloc/movie_bloc.dart';
 import 'services/atmovies_service.dart';
+import 'services/reminder_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_TW', null);
+  await ReminderService().init();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
