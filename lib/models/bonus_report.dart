@@ -7,6 +7,7 @@ class BonusReport {
   final String? userId;
   final String? userEmail;
   final String? userPhotoUrl;
+  final String? displayName;
 
   BonusReport({
     required this.id,
@@ -17,6 +18,7 @@ class BonusReport {
     this.userId,
     this.userEmail,
     this.userPhotoUrl,
+    this.displayName,
   });
 
   Map<String, dynamic> toJson() {
@@ -29,19 +31,23 @@ class BonusReport {
       'userId': userId,
       'userEmail': userEmail,
       'userPhotoUrl': userPhotoUrl,
+      'displayName': displayName,
     };
   }
 
   factory BonusReport.fromJson(Map<dynamic, dynamic> json) {
     return BonusReport(
-      id: json['id'] as String,
-      movieId: json['movieId'] as String,
-      cinemaName: json['cinemaName'] as String,
-      isAvailable: json['isAvailable'] as bool,
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      id: json['id'] as String? ?? '',
+      movieId: json['movieId'] as String? ?? '',
+      cinemaName: json['cinemaName'] as String? ?? '',
+      isAvailable: json['isAvailable'] as bool? ?? false,
+      timestamp: json['timestamp'] != null 
+          ? DateTime.parse(json['timestamp'] as String) 
+          : DateTime.now(),
       userId: json['userId'] as String?,
       userEmail: json['userEmail'] as String?,
       userPhotoUrl: json['userPhotoUrl'] as String?,
+      displayName: json['displayName'] as String?,
     );
   }
 }

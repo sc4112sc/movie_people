@@ -10,6 +10,7 @@ import '../bloc/cinema_bloc.dart';
 import '../models/movie.dart';
 import '../models/cinema.dart';
 import '../models/showtime.dart';
+import '../models/rating_entry.dart';
 import '../services/atmovies_service.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
@@ -197,11 +198,19 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                 final count =
                                     (data?['ratingCount'] as num?)?.toInt() ??
                                         0;
-                                final userRating = (uid != null &&
-                                        data?['users'] != null &&
-                                        data!['users'][uid] != null)
-                                    ? (data['users'][uid] as num).toDouble()
+                                final userRatingValue = (uid != null &&
+                                        data?['users'] != null)
+                                    ? data!['users'][uid]
                                     : null;
+                                
+                                double? userRating;
+                                if (userRatingValue != null) {
+                                  if (userRatingValue is num) {
+                                    userRating = userRatingValue.toDouble();
+                                  } else if (userRatingValue is Map) {
+                                    userRating = (userRatingValue['rating'] as num?)?.toDouble();
+                                  }
+                                }
 
                                 return Row(
                                   children: [
@@ -211,18 +220,41 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                       color: AppTheme.accentPurple,
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      '${average.toStringAsFixed(1)} ($count)',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                    GestureDetector(
+                                      onTap: count > 0
+                                          ? () => _showRatingHistorySheet()
+                                          : null,
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            '${average.toStringAsFixed(1)} ($count)',
+                                            style: TextStyle(
+                                              color: count > 0
+                                                  ? Colors.white
+                                                  : AppTheme.textSecondary,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              decoration: count > 0
+                                                  ? TextDecoration.underline
+                                                  : null,
+                                              decorationColor: Colors.white54,
+                                            ),
+                                          ),
+                                          if (count > 0) ...[
+                                            const SizedBox(width: 3),
+                                            const Icon(
+                                              Icons.history_rounded,
+                                              size: 12,
+                                              color: Colors.white54,
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                     const Spacer(),
                                     ElevatedButton(
                                       onPressed: () => _showRatingBottomSheet(
-                                          context, userRating ?? 0.0),
+                                          context, userRating ?? 0.0, authState),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: userRating != null
                                             ? AppTheme.accentPurple
@@ -797,8 +829,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
     );
   }
 
-  void _showRatingBottomSheet(BuildContext context, double initialRating) {
-    final authState = context.read<AuthBloc>().state;
+  void _showRatingBottomSheet(BuildContext context, double initialRating, AuthState authState) {
     if (authState is! Authenticated) {
       Get.snackbar(
         '需要登入',
@@ -858,6 +889,9 @@ class _CinemaListViewState extends State<_CinemaListView> {
                       movieId: widget.movie.id,
                       uid: user.uid,
                       newRating: currentRating,
+                      displayName: user.displayName,
+                      userEmail: user.email,
+                      userPhotoUrl: user.photoURL,
                     );
                     Get.back(); // close loading dialog
                     Get.snackbar(
@@ -888,6 +922,168 @@ class _CinemaListViewState extends State<_CinemaListView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showRatingHistorySheet() {
+    Get.bottomSheet(
+      _PaginatedHistorySheet<RatingEntry>(
+        title: '《${widget.movie.title}》評分紀錄',
+        emptyText: '尚無評分紀錄',
+        loader: (lastKey) => _ratingService.getRatingHistory(
+          widget.movie.id,
+          lastKey: lastKey,
+        ),
+        itemBuilder: (entry) => _buildRatingHistoryItem(entry),
+        keyExtractor: (entry) => entry.id,
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildRatingHistoryItem(RatingEntry entry) {
+    final displayName = entry.displayName != null
+        ? entry.displayName!
+        : (entry.userEmail != null ? _maskEmail(entry.userEmail!) : '電影人');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppTheme.accentPurple.withOpacity(0.1),
+            backgroundImage: entry.userPhotoUrl != null
+                ? CachedNetworkImageProvider(entry.userPhotoUrl!)
+                : null,
+            child: entry.userPhotoUrl == null
+                ? const Icon(Icons.person, size: 18, color: AppTheme.accentPurple)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatRelativeTime(entry.timestamp),
+                  style: TextStyle(
+                    color: AppTheme.textSecondary.withOpacity(0.5),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          StarRating(
+            rating: entry.rating,
+            size: 13,
+            color: AppTheme.accentPurple,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            entry.rating.toStringAsFixed(1),
+            style: const TextStyle(
+              color: AppTheme.accentPurple,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBonusHistorySheet(String cinemaName) {
+    Get.bottomSheet(
+      _PaginatedHistorySheet<BonusReport>(
+        title: '$cinemaName 特典回報紀錄',
+        emptyText: '尚無回報紀錄',
+        loader: (lastTimestamp) => _bonusService.getBonusHistory(
+          widget.movie.id.toString(),
+          cinemaName,
+          lastTimestamp: lastTimestamp,
+        ),
+        itemBuilder: (report) => _buildBonusHistoryItem(report),
+        keyExtractor: (report) => report.timestamp.toIso8601String(),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildBonusHistoryItem(BonusReport report) {
+    final isAvailable = report.isAvailable;
+    final statusColor = isAvailable ? Colors.green : Colors.red;
+    final displayName = report.userEmail != null
+        ? _maskEmail(report.userEmail!)
+        : '電影人';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: statusColor.withOpacity(0.1),
+            backgroundImage: report.userPhotoUrl != null
+                ? CachedNetworkImageProvider(report.userPhotoUrl!)
+                : null,
+            child: report.userPhotoUrl == null
+                ? Icon(Icons.person, size: 18, color: statusColor)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isAvailable ? Icons.check_circle_outline : Icons.cancel_outlined,
+                      size: 13,
+                      color: statusColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isAvailable ? '還有特典' : '已無特典',
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  report.displayName ?? (report.userEmail != null ? _maskEmail(report.userEmail!) : '電影人'),
+                  style: TextStyle(
+                    color: AppTheme.textSecondary.withOpacity(0.5),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            _formatRelativeTime(report.timestamp),
+            style: TextStyle(
+              color: AppTheme.textSecondary.withOpacity(0.5),
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1017,191 +1213,212 @@ class _CinemaListViewState extends State<_CinemaListView> {
     final String? currentUserEmail = authState.user.email;
 
     Get.bottomSheet(
-      SafeArea(
-        child: Container(
-          constraints: BoxConstraints(maxHeight: Get.height * 0.8),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          decoration: const BoxDecoration(
-            color: AppTheme.surfaceDark,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.dividerColor,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Column(
-                        children: [
-                          const Text(
-                            '回報特典狀態',
-                            style: TextStyle(
-                                color: AppTheme.textPrimary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            cinemaName,
-                            style: const TextStyle(
-                                color: AppTheme.textSecondary, fontSize: 14),
-                          ),
-                          if (isAuthenticated && currentUserEmail != null) ...[
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircleAvatar(
-                                  radius: 12,
-                                  backgroundImage: (authState as Authenticated).user.photoURL != null
-                                      ? CachedNetworkImageProvider(authState.user.photoURL!)
-                                      : null,
-                                  child: authState.user.photoURL == null
-                                      ? const Icon(Icons.person, size: 14)
-                                      : null,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '將以 ${_maskEmail(currentUserEmail)} 身份回報',
-                                  style: TextStyle(
-                                      color: AppTheme.accentPurple.withOpacity(0.6),
-                                      fontSize: 11,
-                                      fontStyle: FontStyle.italic),
+      Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false, // 讓內容貼近底部，但背景色維持
+          child: Container(
+            constraints: BoxConstraints(maxHeight: Get.height * 0.8),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Column(
+                            children: [
+                              const Text(
+                                '回報特典狀態',
+                                style: TextStyle(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                cinemaName,
+                                style: const TextStyle(
+                                    color: AppTheme.textSecondary, fontSize: 14),
+                              ),
+                              if (isAuthenticated && currentUserEmail != null) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 12,
+                                      backgroundImage: (authState as Authenticated).user.photoURL != null
+                                          ? CachedNetworkImageProvider(authState.user.photoURL!)
+                                          : null,
+                                      child: authState.user.photoURL == null
+                                          ? const Icon(Icons.person, size: 14)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '將以 ${authState.user.displayName ?? _maskEmail(currentUserEmail)} 身份回報',
+                                      style: TextStyle(
+                                          color: AppTheme.accentPurple.withOpacity(0.6),
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                  ],
                                 ),
                               ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Recent Reports Section
+                        Row(
+                          children: [
+                            const Text(
+                              '近期回報紀錄',
+                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(child: Divider(color: AppTheme.dividerColor.withOpacity(0.5))),
+                            TextButton.icon(
+                              onPressed: () {
+                                Get.back();
+                                _showBonusHistorySheet(cinemaName);
+                              },
+                              icon: const Icon(Icons.history_rounded, size: 14),
+                              label: const Text('查看全部', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.accentPurple,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    // Recent Reports Section
-                    Row(
-                      children: [
-                        const Text(
-                          '近期回報紀錄',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(child: Divider(color: AppTheme.dividerColor.withOpacity(0.5))),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    StreamBuilder<List<BonusReport>>(
-                      stream: _bonusService.getReports(widget.movie.id.toString(), cinemaName),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            child: Center(
-                              child: Text('目前尚無近期紀錄', style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.3), fontSize: 12)),
-                            ),
-                          );
-                        }
-                        
-                        return Column(
-                          children: snapshot.data!.map((report) {
-                            final isAvailable = report.isAvailable;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: isAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                                    backgroundImage: report.userPhotoUrl != null ? CachedNetworkImageProvider(report.userPhotoUrl!) : null,
-                                    child: report.userPhotoUrl == null ? Icon(Icons.person, size: 16, color: isAvailable ? Colors.green : Colors.red) : null,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
+                        const SizedBox(height: 16),
+                        StreamBuilder<List<BonusReport>>(
+                          stream: _bonusService.getReports(widget.movie.id.toString(), cinemaName),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                child: Center(
+                                  child: Text('目前尚無近期紀錄', style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.3), fontSize: 12)),
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: snapshot.data!.take(3).map((report) {
+                                final isAvailable = report.isAvailable;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: isAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                        backgroundImage: report.userPhotoUrl != null ? CachedNetworkImageProvider(report.userPhotoUrl!) : null,
+                                        child: report.userPhotoUrl == null ? Icon(Icons.person, size: 16, color: isAvailable ? Colors.green : Colors.red) : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Icon(
-                                              isAvailable ? Icons.check_circle_outline : Icons.cancel_outlined,
-                                              size: 12,
-                                              color: isAvailable ? Colors.green : Colors.red,
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  isAvailable ? Icons.check_circle_outline : Icons.cancel_outlined,
+                                                  size: 12,
+                                                  color: isAvailable ? Colors.green : Colors.red,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  isAvailable ? '還有特典' : '已無特典',
+                                                  style: TextStyle(
+                                                    color: isAvailable ? Colors.green : Colors.red,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                                Text(
+                                                  _formatRelativeTime(report.timestamp),
+                                                  style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.5), fontSize: 11),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(width: 4),
+                                            const SizedBox(height: 2),
                                             Text(
-                                              isAvailable ? '還有特典' : '已無特典',
-                                              style: TextStyle(
-                                                color: isAvailable ? Colors.green : Colors.red,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            Text(
-                                              _formatRelativeTime(report.timestamp),
-                                              style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.5), fontSize: 11),
+                                              report.displayName ?? (report.userEmail != null ? _maskEmail(report.userEmail!) : '電影人'),
+                                              style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.4), fontSize: 10),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          report.userEmail != null ? _maskEmail(report.userEmail!) : '電影人',
-                                          style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.4), fontSize: 10),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                );
+                              }).toList(),
                             );
-                          }).toList(),
-                        );
-                      },
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildReportButton(
+                        title: '還有特典',
+                        subtitle: '現場仍有存貨',
+                        icon: Icons.check_circle_rounded,
+                        color: Colors.green,
+                        onTap: () => _submitReport(cinemaName, true),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildReportButton(
+                        title: '已無特典',
+                        subtitle: '現場已發送完畢',
+                        icon: Icons.cancel_rounded,
+                        color: Colors.red,
+                        onTap: () => _submitReport(cinemaName, false),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildReportButton(
-                    title: '還有特典',
-                    subtitle: '現場仍有存貨',
-                    icon: Icons.check_circle_rounded,
-                    color: Colors.green,
-                    onTap: () => _submitReport(cinemaName, true),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildReportButton(
-                    title: '已無特典',
-                    subtitle: '現場已發送完畢',
-                    icon: Icons.cancel_rounded,
-                    color: Colors.red,
-                    onTap: () => _submitReport(cinemaName, false),
-                  ),
-                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
-    ));
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   Widget _buildReportButton({
@@ -1244,38 +1461,32 @@ class _CinemaListViewState extends State<_CinemaListView> {
     String? userId;
     String? userEmail;
     String? userPhotoUrl;
+    String? displayName;
 
     if (authState is Authenticated) {
       userId = authState.user.uid;
       userEmail = authState.user.email;
       userPhotoUrl = authState.user.photoURL;
-      
-      print('🔍 [Debug] uid: $userId');
-      print('🔍 [Debug] email: $userEmail');
-      print('🔍 [Debug] photoURL from Firebase: $userPhotoUrl');
-      print('🔍 [Debug] displayName: ${authState.user.displayName}');
-      print('🔍 [Debug] providerData: ${authState.user.providerData.map((p) => "${p.providerId}: ${p.photoURL}").toList()}');
-      
+      displayName = authState.user.displayName;
+
       // 如果 Firebase 的 photoURL 為空，嘗試從 providerData 中找出 Facebook 頭像
       if (userPhotoUrl == null || userPhotoUrl!.isEmpty) {
         for (final provider in authState.user.providerData) {
           if (provider.providerId == 'facebook.com' && provider.photoURL != null) {
             userPhotoUrl = provider.photoURL;
-            print('🔍 [Debug] photoURL from providerData: $userPhotoUrl');
             break;
           }
         }
       }
-      
+
       // 如果是 Facebook 圖片，強制要求大圖
       if (userPhotoUrl != null && userPhotoUrl!.contains('facebook.com')) {
         if (!userPhotoUrl!.contains('type=large')) {
-          userPhotoUrl = userPhotoUrl!.contains('?') 
-            ? '$userPhotoUrl&type=large' 
-            : '$userPhotoUrl?type=large';
+          userPhotoUrl = userPhotoUrl!.contains('?')
+              ? '$userPhotoUrl&type=large'
+              : '$userPhotoUrl?type=large';
         }
       }
-      print('🔍 [Debug] final userPhotoUrl to save: $userPhotoUrl');
     }
 
     final report = BonusReport(
@@ -1287,6 +1498,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
       userId: userId,
       userEmail: userEmail,
       userPhotoUrl: userPhotoUrl,
+      displayName: displayName,
     );
 
     try {
@@ -1310,5 +1522,160 @@ class _CinemaListViewState extends State<_CinemaListView> {
     final parts = email.split('@');
     if (parts[0].length <= 2) return '***@${parts[1]}';
     return '${parts[0].substring(0, 2)}***@${parts[1]}';
+  }
+}
+
+/// 通用分頁歷史紀錄底部彈窗
+class _PaginatedHistorySheet<T> extends StatefulWidget {
+  final String title;
+  final String emptyText;
+  final Future<List<T>> Function(String? lastKey) loader;
+  final Widget Function(T item) itemBuilder;
+  final String Function(T item) keyExtractor;
+
+  const _PaginatedHistorySheet({
+    required this.title,
+    required this.emptyText,
+    required this.loader,
+    required this.itemBuilder,
+    required this.keyExtractor,
+  });
+
+  @override
+  State<_PaginatedHistorySheet<T>> createState() =>
+      _PaginatedHistorySheetState<T>();
+}
+
+class _PaginatedHistorySheetState<T>
+    extends State<_PaginatedHistorySheet<T>> {
+  final List<T> _items = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  static const int _pageSize = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMore();
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final lastKey = _items.isNotEmpty
+          ? widget.keyExtractor(_items.last)
+          : null;
+      final newItems = await widget.loader(lastKey);
+      setState(() {
+        _items.addAll(newItems);
+        _hasMore = newItems.length >= _pageSize;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppTheme.dividerColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
+                  onPressed: () => Get.back(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          Divider(color: AppTheme.dividerColor.withOpacity(0.4), height: 1),
+          // Content
+          Expanded(
+            child: _items.isEmpty && !_isLoading
+                ? Center(
+                    child: Text(
+                      widget.emptyText,
+                      style: TextStyle(
+                        color: AppTheme.textSecondary.withOpacity(0.4),
+                        fontSize: 14,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _items.length + (_hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _items.length) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: _isLoading
+                              ? const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppTheme.accentPurple),
+                                    ),
+                                  ),
+                                )
+                              : Center(
+                                  child: TextButton.icon(
+                                    onPressed: _loadMore,
+                                    icon: const Icon(Icons.expand_more_rounded,
+                                        size: 18),
+                                    label: const Text('載入更多'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppTheme.accentPurple,
+                                    ),
+                                  ),
+                                ),
+                        );
+                      }
+                      return widget.itemBuilder(_items[index]);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }
