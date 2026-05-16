@@ -844,83 +844,121 @@ class _CinemaListViewState extends State<_CinemaListView> {
 
     final user = authState.user;
     double currentRating = initialRating == 0.0 ? 5.0 : initialRating;
+    final TextEditingController commentController = TextEditingController();
 
     Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.cardDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '給予《${widget.movie.title}》評分',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 24),
-            StarRating(
-              rating: currentRating,
-              size: 40,
-              color: AppTheme.accentPurple,
-              onRatingChanged: (rating) {
-                currentRating = rating;
-              },
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  Get.back(); // close bottom sheet
-                  Get.dialog(const Center(child: CircularProgressIndicator()),
-                      barrierDismissible: false);
-
-                  try {
-                    await _ratingService.submitRating(
-                      movieId: widget.movie.id,
-                      uid: user.uid,
-                      newRating: currentRating,
-                      displayName: user.displayName,
-                      userEmail: user.email,
-                      userPhotoUrl: user.photoURL,
-                    );
-                    Get.back(); // close loading dialog
-                    Get.snackbar(
-                      '評分成功',
-                      '謝謝您的回饋！',
-                      snackPosition: SnackPosition.TOP,
-                      backgroundColor: AppTheme.accentPurple.withOpacity(0.9),
-                      colorText: Colors.white,
-                      margin: const EdgeInsets.all(16),
-                    );
-                  } catch (e) {
-                    Get.back(); // close loading dialog
-                    Get.snackbar('錯誤', '評分失敗：$e',
-                        snackPosition: SnackPosition.TOP);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+      isScrollControlled: true,
+      GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+          decoration: const BoxDecoration(
+            color: AppTheme.cardDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                child: const Text('確認送出',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
+                const SizedBox(height: 24),
+                Text(
+                  '給予《${widget.movie.title}》評分',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 24),
+                StarRating(
+                  rating: currentRating,
+                  size: 40,
+                  color: AppTheme.accentPurple,
+                  onRatingChanged: (rating) {
+                    currentRating = rating;
+                  },
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: commentController,
+                  maxLength: 10,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: '留下十字評語...',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    filled: true,
+                    fillColor: AppTheme.surfaceDark,
+                    counterStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppTheme.accentPurple, width: 1),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Get.back(); // close bottom sheet
+                      Get.dialog(const Center(child: CircularProgressIndicator()),
+                          barrierDismissible: false);
+
+                      try {
+                        await _ratingService.submitRating(
+                          movieId: widget.movie.id,
+                          uid: user.uid,
+                          newRating: currentRating,
+                          comment: commentController.text.trim(),
+                          displayName: user.displayName,
+                          userEmail: user.email,
+                          userPhotoUrl: user.photoURL,
+                        );
+                        Get.back(); // close loading dialog
+                        Get.snackbar(
+                          '評分成功',
+                          '謝謝您的回饋！',
+                          snackPosition: SnackPosition.TOP,
+                          backgroundColor: AppTheme.accentPurple.withOpacity(0.9),
+                          colorText: Colors.white,
+                          margin: const EdgeInsets.all(16),
+                        );
+                      } catch (e) {
+                        Get.back(); // close loading dialog
+                        Get.snackbar('錯誤', '評分失敗：$e',
+                            snackPosition: SnackPosition.TOP);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentPurple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('確認送出',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -975,6 +1013,17 @@ class _CinemaListViewState extends State<_CinemaListView> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (entry.comment != null && entry.comment!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    entry.comment!,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   _formatRelativeTime(entry.timestamp),

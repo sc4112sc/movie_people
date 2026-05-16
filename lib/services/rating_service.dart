@@ -32,6 +32,7 @@ class RatingService {
     required int movieId,
     required String uid,
     required double newRating,
+    String? comment,
     String? displayName,
     String? userEmail,
     String? userPhotoUrl,
@@ -48,7 +49,11 @@ class RatingService {
           'averageRating': newRating,
           'ratingCount': 1,
           'users': {
-            uid: {'rating': newRating, 'lastHistoryKey': newHistoryKey}
+            uid: {
+              'rating': newRating,
+              'comment': comment,
+              'lastHistoryKey': newHistoryKey
+            }
           },
         });
       }
@@ -86,6 +91,7 @@ class RatingService {
       
       users[uid] = {
         'rating': newRating,
+        'comment': comment,
         'lastHistoryKey': newHistoryKey,
       };
       
@@ -107,6 +113,7 @@ class RatingService {
       movieId: movieId.toString(),
       uid: uid,
       rating: newRating,
+      comment: comment,
       timestamp: DateTime.now(),
       displayName: displayName,
       userEmail: userEmail,

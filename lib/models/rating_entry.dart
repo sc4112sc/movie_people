@@ -3,6 +3,7 @@ class RatingEntry {
   final String movieId;
   final String uid;
   final double rating;
+  final String? comment;
   final DateTime timestamp;
   final String? displayName;
   final String? userEmail;
@@ -13,6 +14,7 @@ class RatingEntry {
     required this.movieId,
     required this.uid,
     required this.rating,
+    this.comment,
     required this.timestamp,
     this.displayName,
     this.userEmail,
@@ -25,6 +27,7 @@ class RatingEntry {
       'movieId': movieId,
       'uid': uid,
       'rating': rating,
+      'comment': comment,
       'timestamp': timestamp.toIso8601String(),
       'displayName': displayName,
       'userEmail': userEmail,
@@ -38,6 +41,7 @@ class RatingEntry {
       movieId: json['movieId'] as String? ?? '',
       uid: json['uid'] as String? ?? '',
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      comment: json['comment'] as String?,
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
           : DateTime.now(),
