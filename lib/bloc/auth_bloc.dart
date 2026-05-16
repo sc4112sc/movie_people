@@ -10,6 +10,8 @@ class CheckAuthStatus extends AuthEvent {}
 
 class SignInWithGoogleRequested extends AuthEvent {}
 
+class SignInWithFacebookRequested extends AuthEvent {}
+
 class SignOutRequested extends AuthEvent {}
 
 // --- States ---
@@ -39,6 +41,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._authService) : super(AuthInitial()) {
     on<CheckAuthStatus>(_onCheckAuthStatus);
     on<SignInWithGoogleRequested>(_onSignInWithGoogleRequested);
+    on<SignInWithFacebookRequested>(_onSignInWithFacebookRequested);
     on<SignOutRequested>(_onSignOutRequested);
 
     // Listen to authentication state changes directly from Firebase
@@ -71,6 +74,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     } catch (e) {
       emit(AuthError('登入失敗，請稍後再試 ($e)'));
+      emit(Unauthenticated());
+    }
+  }
+
+  Future<void> _onSignInWithFacebookRequested(
+    SignInWithFacebookRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      final credential = await _authService.signInWithFacebook();
+      if (credential == null) {
+        emit(Unauthenticated());
+      } else {
+        // Firebase auth state changes listener will handle the Authenticated state emission
+      }
+    } catch (e) {
+      emit(AuthError('Facebook 登入失敗 ($e)'));
       emit(Unauthenticated());
     }
   }

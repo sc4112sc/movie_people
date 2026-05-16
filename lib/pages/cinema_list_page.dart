@@ -1249,6 +1249,33 @@ class _CinemaListViewState extends State<_CinemaListView> {
       userId = authState.user.uid;
       userEmail = authState.user.email;
       userPhotoUrl = authState.user.photoURL;
+      
+      print('🔍 [Debug] uid: $userId');
+      print('🔍 [Debug] email: $userEmail');
+      print('🔍 [Debug] photoURL from Firebase: $userPhotoUrl');
+      print('🔍 [Debug] displayName: ${authState.user.displayName}');
+      print('🔍 [Debug] providerData: ${authState.user.providerData.map((p) => "${p.providerId}: ${p.photoURL}").toList()}');
+      
+      // 如果 Firebase 的 photoURL 為空，嘗試從 providerData 中找出 Facebook 頭像
+      if (userPhotoUrl == null || userPhotoUrl!.isEmpty) {
+        for (final provider in authState.user.providerData) {
+          if (provider.providerId == 'facebook.com' && provider.photoURL != null) {
+            userPhotoUrl = provider.photoURL;
+            print('🔍 [Debug] photoURL from providerData: $userPhotoUrl');
+            break;
+          }
+        }
+      }
+      
+      // 如果是 Facebook 圖片，強制要求大圖
+      if (userPhotoUrl != null && userPhotoUrl!.contains('facebook.com')) {
+        if (!userPhotoUrl!.contains('type=large')) {
+          userPhotoUrl = userPhotoUrl!.contains('?') 
+            ? '$userPhotoUrl&type=large' 
+            : '$userPhotoUrl?type=large';
+        }
+      }
+      print('🔍 [Debug] final userPhotoUrl to save: $userPhotoUrl');
     }
 
     final report = BonusReport(

@@ -53,6 +53,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.531660640970-e6ovqjp8j4ovlhur6h5rmbcmhuphsf5a</string>
+				<string>fb2116707335249552</string>
 			</array>
 		</dict>
 	</array>
@@ -60,7 +61,15 @@
 	<array>
 		<string>https</string>
 		<string>http</string>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
 	</array>
+	<key>FacebookAppID</key>
+	<string>2116707335249552</string>
+	<key>FacebookClientToken</key>
+	<string>c5e5b18d9e3d9500e7e8d06047335713</string>
+	<key>FacebookDisplayName</key>
+	<string>電影人</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>我們需要您的定位權限來為您推薦附近的影城時刻表。</string>
 </dict>

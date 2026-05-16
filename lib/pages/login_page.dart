@@ -4,15 +4,23 @@ import 'package:get/get.dart';
 import '../bloc/auth_bloc.dart';
 import '../theme/app_theme.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  // 追蹤當前是哪種登入方式正在執行，避免兩顆按鈕同時轉圈
+  String? _loadingType; // 'google' 或 'facebook'
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is Authenticated) {
-          // Success login, go back
+          setState(() => _loadingType = null);
           Get.back();
           Get.snackbar(
             '歡迎回來',
@@ -23,6 +31,7 @@ class LoginPage extends StatelessWidget {
             margin: const EdgeInsets.all(16),
           );
         } else if (state is AuthError) {
+          setState(() => _loadingType = null);
           Get.snackbar(
             '登入失敗',
             state.message,
@@ -31,6 +40,8 @@ class LoginPage extends StatelessWidget {
             colorText: Colors.white,
             margin: const EdgeInsets.all(16),
           );
+        } else if (state is Unauthenticated) {
+          setState(() => _loadingType = null);
         }
       },
       child: Scaffold(
@@ -104,56 +115,42 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 64),
               
-              // Google Sign In Button
+              // Login Buttons
               BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
+                  final isGlobalLoading = state is AuthLoading;
+                  
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: ElevatedButton(
-                      onPressed: state is AuthLoading
-                          ? null
-                          : () {
-                              context.read<AuthBloc>().add(SignInWithGoogleRequested());
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.cardDark,
-                        foregroundColor: Colors.white,
-                        elevation: 8,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: Colors.white.withOpacity(0.1),
-                            width: 1,
-                          ),
+                    child: Column(
+                      children: [
+                        _buildLoginButton(
+                          context: context,
+                          title: '使用 Google 帳號登入',
+                          icon: Icons.g_mobiledata_rounded,
+                          color: AppTheme.cardDark,
+                          isLoading: isGlobalLoading && _loadingType == 'google',
+                          isOtherLoading: isGlobalLoading && _loadingType != 'google',
+                          onPressed: () {
+                            setState(() => _loadingType = 'google');
+                            context.read<AuthBloc>().add(SignInWithGoogleRequested());
+                          },
+                          hasBorder: true,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (state is AuthLoading)
-                            const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentPurple),
-                              ),
-                            )
-                          else ...[
-                            // Load a simple google icon or use standard icon
-                            const Icon(Icons.g_mobiledata_rounded, size: 36, color: Colors.white),
-                            const SizedBox(width: 8),
-                            const Text(
-                              '使用 Google 帳號登入',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        const SizedBox(height: 16),
+                        _buildLoginButton(
+                          context: context,
+                          title: '使用 Facebook 帳號登入',
+                          icon: Icons.facebook_rounded,
+                          color: const Color(0xFF1877F2),
+                          isLoading: isGlobalLoading && _loadingType == 'facebook',
+                          isOtherLoading: isGlobalLoading && _loadingType != 'facebook',
+                          onPressed: () {
+                            setState(() => _loadingType = 'facebook');
+                            context.read<AuthBloc>().add(SignInWithFacebookRequested());
+                          },
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -161,6 +158,62 @@ class LoginPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoginButton({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required bool isLoading,
+    required bool isOtherLoading,
+    required VoidCallback onPressed,
+    bool hasBorder = false,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: (isLoading || isOtherLoading) ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          elevation: 8,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: hasBorder
+                ? BorderSide(color: Colors.white.withOpacity(0.1), width: 1)
+                : BorderSide.none,
+          ),
+        ),
+        child: isLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: icon == Icons.g_mobiledata_rounded ? 32 : 24, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
