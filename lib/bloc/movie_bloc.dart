@@ -11,10 +11,16 @@ class FetchNowPlaying extends MovieEvent {
   FetchNowPlaying({this.completer});
 }
 
+class FetchComingSoon extends MovieEvent {
+  final Completer<void>? completer;
+  FetchComingSoon({this.completer});
+}
+
 class LoadMovieDetail extends MovieEvent {
   final int index;
   final Movie movie;
-  LoadMovieDetail(this.index, this.movie);
+  final bool isComingSoon;
+  LoadMovieDetail(this.index, this.movie, {this.isComingSoon = false});
 }
 
 // States
@@ -26,15 +32,37 @@ class MovieLoading extends MovieState {}
 
 class MovieLoaded extends MovieState {
   final List<Movie> movies;
+  final List<Movie> comingSoon;
 
-  MovieLoaded({required this.movies});
+  MovieLoaded({
+    required this.movies,
+    this.comingSoon = const [],
+  });
 
-  MovieLoaded copyWithMovie(int index, Movie movie) {
-    final updated = List<Movie>.from(movies);
-    if (index < updated.length) {
-      updated[index] = movie;
+  MovieLoaded copyWith({
+    List<Movie>? movies,
+    List<Movie>? comingSoon,
+  }) {
+    return MovieLoaded(
+      movies: movies ?? this.movies,
+      comingSoon: comingSoon ?? this.comingSoon,
+    );
+  }
+
+  MovieLoaded copyWithMovie(int index, Movie movie, {bool isComingSoon = false}) {
+    if (isComingSoon) {
+      final updated = List<Movie>.from(comingSoon);
+      if (index < updated.length) {
+        updated[index] = movie;
+      }
+      return copyWith(comingSoon: updated);
+    } else {
+      final updated = List<Movie>.from(movies);
+      if (index < updated.length) {
+        updated[index] = movie;
+      }
+      return copyWith(movies: updated);
     }
-    return MovieLoaded(movies: updated);
   }
 }
 
@@ -49,6 +77,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
 
   MovieBloc(this._service) : super(MovieInitial()) {
     on<FetchNowPlaying>(_onFetchNowPlaying);
+    on<FetchComingSoon>(_onFetchComingSoon);
     on<LoadMovieDetail>(_onLoadMovieDetail);
   }
 
@@ -57,13 +86,33 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
     Emitter<MovieState> emit,
   ) async {
     print('🔄 [MovieBloc] 收到下拉刷新事件，準備重新抓取資料...');
+    final currentComingSoon = state is MovieLoaded ? (state as MovieLoaded).comingSoon : <Movie>[];
     emit(MovieLoading());
     try {
       final movies = await _service.getNowPlaying();
       print('✅ [MovieBloc] 成功從遠端取得 ${movies.length} 部最新上映電影！');
-      emit(MovieLoaded(movies: movies));
+      emit(MovieLoaded(movies: movies, comingSoon: currentComingSoon));
     } catch (e) {
       print('❌ [MovieBloc] 抓取資料失敗: $e');
+      emit(MovieError(e.toString()));
+    } finally {
+      event.completer?.complete();
+    }
+  }
+
+  Future<void> _onFetchComingSoon(
+    FetchComingSoon event,
+    Emitter<MovieState> emit,
+  ) async {
+    print('🔄 [MovieBloc] 抓取即將上映電影...');
+    // 不論先前是否有資料，進入即將上映頁面時都顯示 Loading 以提供更好的反饋
+    final currentMovies = state is MovieLoaded ? (state as MovieLoaded).movies : <Movie>[];
+    emit(MovieLoading());
+    try {
+      final comingSoon = await _service.getComingSoon();
+      emit(MovieLoaded(movies: currentMovies, comingSoon: comingSoon));
+    } catch (e) {
+      print('❌ [MovieBloc] 抓取即將上映失敗: $e');
       emit(MovieError(e.toString()));
     } finally {
       event.completer?.complete();
@@ -77,7 +126,11 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
     if (state is MovieLoaded) {
       try {
         final detailed = await _service.getMovieDetail(event.movie);
-        emit((state as MovieLoaded).copyWithMovie(event.index, detailed));
+        emit((state as MovieLoaded).copyWithMovie(
+          event.index, 
+          detailed, 
+          isComingSoon: event.isComingSoon
+        ));
       } catch (_) {
         // keep current state
       }

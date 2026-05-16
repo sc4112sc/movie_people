@@ -12,6 +12,7 @@ import '../bloc/auth_bloc.dart';
 import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'movie_detail_page.dart';
+import 'coming_soon_page.dart';
 class MovieListPage extends StatelessWidget {
   const MovieListPage({super.key});
 
@@ -58,6 +59,111 @@ class MovieListPage extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            // 即將上映入口橫幅
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: GestureDetector(
+                  onTap: () {
+                    Get.to(() => const ComingSoonPage(), transition: Transition.rightToLeftWithFade);
+                  },
+                  child: Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppTheme.accentPurple.withOpacity(0.8),
+                          AppTheme.accentBlue.withOpacity(0.8),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.accentPurple.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -20,
+                            top: -20,
+                            child: Icon(
+                              Icons.upcoming_rounded,
+                              size: 140,
+                              color: Colors.white.withOpacity(0.15),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'New',
+                                        style: TextStyle(
+                                          color: AppTheme.accentPurple,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      '即將上映',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '查看未來數月即將上映的強檔新片',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            right: 24,
+                            bottom: 24,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Colors.white24,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -10,6 +10,7 @@ class Movie {
   final String? director;
   final List<String>? cast;
   final String? atmoviesId;
+  final String? trailerUrl;
 
   Movie({
     required this.id,
@@ -23,6 +24,7 @@ class Movie {
     this.director,
     this.cast,
     this.atmoviesId,
+    this.trailerUrl,
   });
 
   /// 取得海報完整 URL

@@ -548,7 +548,201 @@ class AtmoviesService {
     return _ParsedVersion(format: format, language: language);
   }
 
-  /// 構建海報 URL
+  /// 取得即將上映電影列表
+  Future<List<Movie>> getComingSoon() async {
+    print('🌐 [AtmoviesService] 正在從開眼抓取即將上映列表...');
+    final response = await http.get(
+      Uri.parse('$_baseUrl/movie/next/0/'),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      print('❌ [AtmoviesService] 列表請求失敗: ${response.statusCode}');
+      throw Exception('HTTP ${response.statusCode}');
+    }
+
+    final document = html_parser.parse(response.body);
+    final movies = <Movie>[];
+
+    // 抓取所有日期與電影列表容器
+    // 根據最新觀察，日期在 h2.major span，列表在 ul.filmListAll
+    final listItems = document.querySelectorAll('h2.major, ul.filmListAll, .filmListDate, ul.filmNextListAll');
+    print('🔍 [AtmoviesService] 找到 ${listItems.length} 個結構區塊');
+
+    String currentDate = '';
+
+    for (final node in listItems) {
+      if (node.localName == 'h2' || node.className.contains('filmListDate')) {
+        currentDate = node.text.trim().replaceAll('/', '-');
+        print('📅 [AtmoviesService] 偵測到上映日期: $currentDate');
+      } else {
+        final links = node.querySelectorAll('li a');
+        if (links.isEmpty) continue;
+        
+        for (final link in links) {
+          final href = link.attributes['href'] ?? '';
+          final match = RegExp(r'/movie/(f[a-z0-9]+)/').firstMatch(href);
+          if (match == null) continue;
+
+          final movieId = match.group(1)!;
+          final title = link.text.trim();
+          if (title.isEmpty) continue;
+
+          // 避免重複抓取
+          if (movies.any((m) => m.atmoviesId == movieId)) continue;
+
+          movies.add(Movie(
+            id: movieId.hashCode,
+            title: title,
+            posterPath: _getPosterUrl(movieId),
+            backdropPath: _getPosterUrl(movieId),
+            overview: '',
+            voteAverage: 0.0,
+            releaseDate: currentDate.isNotEmpty ? currentDate : '即將上映',
+            genreIds: [],
+            atmoviesId: movieId,
+          ));
+        }
+      }
+    }
+
+    // 如果上述結構失效，嘗試最後的保底方案：直接抓取所有電影連結
+    if (movies.isEmpty) {
+      print('⚠️ [AtmoviesService] 結構化解析失敗，啟動保底方案...');
+      final allLinks = document.querySelectorAll('a[href*="/movie/f"]');
+      for (final link in allLinks) {
+        final href = link.attributes['href'] ?? '';
+        final match = RegExp(r'/movie/(f[a-z0-9]+)/').firstMatch(href);
+        if (match != null) {
+          final movieId = match.group(1)!;
+          final title = link.text.trim();
+          if (title.isNotEmpty && !movies.any((m) => m.atmoviesId == movieId)) {
+            movies.add(Movie(
+              id: movieId.hashCode,
+              title: title,
+              posterPath: _getPosterUrl(movieId),
+              backdropPath: _getPosterUrl(movieId),
+              overview: '',
+              voteAverage: 0.0,
+              releaseDate: '即將上映',
+              genreIds: [],
+              atmoviesId: movieId,
+            ));
+          }
+        }
+      }
+    }
+
+    print('📊 [AtmoviesService] 共抓取到 ${movies.length} 部即將上映電影');
+
+    // 為了顯示預告片與簡介，我們對前 10 筆（最快上映的）進行詳情抓取
+    if (movies.isNotEmpty) {
+      print('📥 [AtmoviesService] 正在抓取前 10 筆電影詳情...');
+      final detailedMovies = await Future.wait(
+        movies.take(10).map((m) => _getComingSoonDetail(m)),
+      );
+
+      final result = <Movie>[];
+      result.addAll(detailedMovies);
+      if (movies.length > 10) {
+        result.addAll(movies.skip(10));
+      }
+      return result;
+    }
+
+    return movies;
+  }
+
+  /// 內部方法：針對即將上映電影抓取簡介與預告片
+  Future<Movie> _getComingSoonDetail(Movie movie) async {
+    try {
+      print('🔍 [AtmoviesService] 正在抓取詳情: ${movie.title} (${movie.atmoviesId})');
+      final response = await http.get(
+        Uri.parse('$_baseUrl/movie/${movie.atmoviesId}/'),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        },
+      );
+
+      if (response.statusCode != 200) return movie;
+
+      final document = html_parser.parse(response.body);
+
+      // 1. 抓取簡介與高品質海報 (使用內部 HTTPS 穩定路徑)
+      String overview = '';
+      String highResPoster = _getPosterUrl(movie.atmoviesId ?? '');
+
+      final metaDesc =
+          document.querySelector('meta[property="og:description"]') ??
+              document.querySelector('meta[name="description"]');
+      if (metaDesc != null) {
+        overview = metaDesc.attributes['content']?.trim() ?? '';
+        if (overview.contains('提供最新的電影資訊')) overview = '';
+      }
+
+      if (overview.isEmpty) {
+        final filmTag = document.querySelector('#filmTagBlock span');
+        if (filmTag != null) overview = filmTag.text.trim();
+      }
+
+      // 2. 抓取 YouTube 預告片 (更強大的搜尋邏輯)
+      String? trailerUrl;
+      
+      // 方案 A: 尋找所有 iframe 並檢查是否包含 youtube
+      final iframes = document.querySelectorAll('iframe');
+      for (var iframe in iframes) {
+        final src = iframe.attributes['src'];
+        if (src != null && src.contains('youtube.com')) {
+          trailerUrl = src;
+          break;
+        }
+      }
+
+      // 方案 B: 如果找不到 iframe，尋找所有包含 youtube 關鍵字的 a 連結
+      if (trailerUrl == null) {
+        final links = document.querySelectorAll('a');
+        for (var link in links) {
+          final href = link.attributes['href'];
+          if (href != null && href.contains('youtube.com')) {
+            trailerUrl = href;
+            break;
+          }
+        }
+      }
+
+      if (trailerUrl != null && trailerUrl.startsWith('//')) {
+        trailerUrl = 'https:$trailerUrl';
+      }
+
+      if (trailerUrl != null) {
+        print('🎬 [AtmoviesService] 找到預告片: $trailerUrl');
+      } else {
+        print('⚠️ [AtmoviesService] 找不到預告片: ${movie.title}');
+      }
+
+      return Movie(
+        id: movie.id,
+        title: movie.title,
+        posterPath: (highResPoster != null && highResPoster.isNotEmpty) 
+            ? highResPoster 
+            : movie.posterPath,
+        backdropPath: movie.backdropPath,
+        overview: overview.isNotEmpty ? overview : movie.overview,
+        voteAverage: movie.voteAverage,
+        releaseDate: movie.releaseDate,
+        genreIds: movie.genreIds,
+        atmoviesId: movie.atmoviesId,
+        trailerUrl: trailerUrl,
+      );
+    } catch (e) {
+      print('❌ [AtmoviesService] 抓取詳情異常: $e');
+      return movie;
+    }
+  }
+
+  /// 構建高品質海報 URL
   static String _getPosterUrl(String movieId) {
     return 'https://www.atmovies.com.tw/photo101/$movieId/pl_$movieId.jpg';
   }
