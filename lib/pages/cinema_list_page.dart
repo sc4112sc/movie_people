@@ -13,7 +13,6 @@ import '../models/showtime.dart';
 import '../models/rating_entry.dart';
 import '../services/atmovies_service.dart';
 import '../theme/app_theme.dart';
-import 'package:intl/intl.dart';
 import '../services/rating_service.dart';
 import '../widgets/star_rating.dart';
 import '../bloc/auth_bloc.dart';
@@ -85,7 +84,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
     final city = await _locationService.getCurrentCity();
     if (city != null) {
       final regionCode = LocationService.mapCityToRegionCode(
-          city, AtmoviesService.regionCodes);
+          city, AtmoviesService.regionCodes,);
       if (regionCode != null && regionCode != _selectedRegion) {
         if (mounted) {
           setState(() {
@@ -254,7 +253,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                     const Spacer(),
                                     ElevatedButton(
                                       onPressed: () => _showRatingBottomSheet(
-                                          context, userRating ?? 0.0, authState),
+                                          context, userRating ?? 0.0, authState,),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: userRating != null
                                             ? AppTheme.accentPurple
@@ -264,7 +263,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                             ? AppTheme.accentPurple
                                             : Colors.white,
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 0),
+                                            horizontal: 16, vertical: 0,),
                                         minimumSize: const Size(60, 28),
                                         tapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
@@ -279,7 +278,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                             : '我要評分',
                                         style: const TextStyle(
                                             fontSize: 12,
-                                            fontWeight: FontWeight.bold),
+                                            fontWeight: FontWeight.bold,),
                                       ),
                                     ),
                                   ],
@@ -357,7 +356,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         ),
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
@@ -413,18 +412,18 @@ class _CinemaListViewState extends State<_CinemaListView> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.error_outline,
-                            size: 48, color: AppTheme.textSecondary),
+                            size: 48, color: AppTheme.textSecondary,),
                         const SizedBox(height: 12),
                         const Text(
                           '載入失敗',
                           style: TextStyle(
-                              color: AppTheme.textPrimary, fontSize: 16),
+                              color: AppTheme.textPrimary, fontSize: 16,),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           state.message,
                           style: const TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 13),
+                              color: AppTheme.textSecondary, fontSize: 13,),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -442,12 +441,12 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.theaters_rounded,
-                              size: 48, color: AppTheme.textSecondary),
+                              size: 48, color: AppTheme.textSecondary,),
                           SizedBox(height: 12),
                           Text(
                             '此地區暫無場次',
                             style: TextStyle(
-                                color: AppTheme.textSecondary, fontSize: 16),
+                                color: AppTheme.textSecondary, fontSize: 16,),
                           ),
                         ],
                       ),
@@ -455,7 +454,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                   );
                 }
 
-                final bonusSummary = _bonusSummary;
+
 
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -482,7 +481,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
   }
 
   Widget _buildCinemaCard(
-      Cinema cinema, List<Showtime> showtimes) {
+      Cinema cinema, List<Showtime> showtimes,) {
     final now = DateTime.now();
     final todayShowtimes = <Showtime>[];
     final tomorrowShowtimes = <Showtime>[];
@@ -497,8 +496,9 @@ class _CinemaListViewState extends State<_CinemaListView> {
       }
     }
 
-    if (todayShowtimes.isEmpty && tomorrowShowtimes.isEmpty)
+    if (todayShowtimes.isEmpty && tomorrowShowtimes.isEmpty) {
       return const SizedBox.shrink();
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -569,16 +569,16 @@ class _CinemaListViewState extends State<_CinemaListView> {
                     Text(
                       '明(${DateFormat('MM/dd').format(tomorrowShowtimes.first.time)})場次',
                       style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w500),
+                          fontSize: 13, fontWeight: FontWeight.w500,),
                     ),
                     const SizedBox(width: 4),
                     const Icon(Icons.keyboard_double_arrow_down_rounded,
-                        size: 14),
+                        size: 14,),
                   ],
                 ),
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -660,11 +660,11 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                   final uri = Uri.parse(st.bookingUrl!);
                                   if (await canLaunchUrl(uri)) {
                                     await launchUrl(uri,
-                                        mode: LaunchMode.externalApplication);
+                                        mode: LaunchMode.externalApplication,);
                                     return;
                                   }
                                 } catch (e) {
-                                  print('Error: $e');
+                                  debugPrint('Error: $e');
                                 }
                               }
                               Get.snackbar(
@@ -680,7 +680,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
+                            horizontal: 16, vertical: 10,),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
@@ -747,7 +747,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
   }
 
   void _showTomorrowDialog(
-      BuildContext context, Cinema cinema, List<Showtime> showtimes) {
+      BuildContext context, Cinema cinema, List<Showtime> showtimes,) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
@@ -763,7 +763,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
               Row(
                 children: [
                   const Icon(Icons.calendar_month_rounded,
-                      color: AppTheme.accentPurple),
+                      color: AppTheme.accentPurple,),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -771,12 +771,12 @@ class _CinemaListViewState extends State<_CinemaListView> {
                       style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white),
+                          color: Colors.white,),
                     ),
                   ),
                   IconButton(
                       icon: const Icon(Icons.close, color: Colors.grey),
-                      onPressed: () => Get.back()),
+                      onPressed: () => Get.back(),),
                 ],
               ),
               const SizedBox(height: 16),
@@ -794,10 +794,12 @@ class _CinemaListViewState extends State<_CinemaListView> {
     final upper = format.toUpperCase();
     if (upper.contains('IMAX')) return AppTheme.accentCyan;
     if (upper.contains('3D')) return AppTheme.accentBlue;
-    if (upper.contains('4DX') || upper.contains('MX4D'))
+    if (upper.contains('4DX') || upper.contains('MX4D')) {
       return const Color(0xFFEF4444); // 體感特技紅
-    if (upper.contains('SCREEN X') || upper.contains('SCREENX'))
+    }
+    if (upper.contains('SCREEN X') || upper.contains('SCREENX')) {
       return const Color(0xFFF59E0B);
+    }
     if (upper.contains('DOLBY')) return const Color(0xFF10B981);
     if (upper.contains('LUXE')) return const Color(0xFF38BDF8); // 巨幕天藍
     if (upper.contains('BOOM')) return const Color(0xFFF97316); // 震動亮度橘
@@ -805,21 +807,26 @@ class _CinemaListViewState extends State<_CinemaListView> {
     // 特殊影廳
     if (upper.contains('TITAN')) return const Color(0xFFEAB308); // 黃色
     if (upper.contains('MUCROWN')) return const Color(0xFFD946EF); // 亮粉紫
-    if (upper.contains('GC') || upper.contains('GOLD CLASS'))
+    if (upper.contains('GC') || upper.contains('GOLD CLASS')) {
       return const Color(0xFFF59E0B); // 琥珀色
+    }
     if (upper.contains('MAPPA')) return const Color(0xFF84CC16); // 萊姆綠
     if (upper.contains('LUVNE')) return const Color(0xFFF43F5E); // 玫瑰紅
     if (upper.contains('PRESTIGE')) return const Color(0xFFB45309); // 尊爵金棕
-    if (upper.contains('D-BOX') || upper.contains('DBOX'))
+    if (upper.contains('D-BOX') || upper.contains('DBOX')) {
       return const Color(0xFF9333EA); // 體感紫
+    }
 
     // 語言
-    if (upper.contains('國語') || upper.contains('中文') || upper.contains('國文'))
+    if (upper.contains('國語') || upper.contains('中文') || upper.contains('國文')) {
       return const Color(0xFFEC4899); // 粉色
-    if (upper.contains('日語') || upper.contains('日文'))
+    }
+    if (upper.contains('日語') || upper.contains('日文')) {
       return const Color(0xFF6366F1); // 靛藍色
-    if (upper.contains('韓語') || upper.contains('韓文'))
+    }
+    if (upper.contains('韓語') || upper.contains('韓文')) {
       return const Color(0xFF0EA5E9); // 天藍色
+    }
     if (upper.contains('台語')) return const Color(0xFF14B8A6); // 天青綠色
 
     return const Color(0xFF94A3B8);
@@ -928,7 +935,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                     onPressed: () async {
                       Get.back(); // close bottom sheet
                       Get.dialog(const Center(child: CircularProgressIndicator()),
-                          barrierDismissible: false);
+                          barrierDismissible: false,);
 
                       try {
                         await _ratingService.submitRating(
@@ -952,7 +959,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                       } catch (e) {
                         Get.back(); // close loading dialog
                         Get.snackbar('錯誤', '評分失敗：$e',
-                            snackPosition: SnackPosition.TOP);
+                            snackPosition: SnackPosition.TOP,);
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -964,7 +971,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                       ),
                     ),
                     child: const Text('確認送出',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontWeight: FontWeight.bold),),
                   ),
                 ),
               ],
@@ -1128,7 +1135,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  report.displayName ?? (report.userEmail != null ? _maskEmail(report.userEmail!) : '電影人'),
+                  displayName,
                   style: TextStyle(
                     color: AppTheme.textSecondary.withOpacity(0.5),
                     fontSize: 11,
@@ -1166,7 +1173,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.add_circle_outline_rounded,
-                    size: 12, color: AppTheme.accentPurple.withOpacity(0.7)),
+                    size: 12, color: AppTheme.accentPurple.withOpacity(0.7),),
                 const SizedBox(width: 4),
                 Text(
                   '回報特典',
@@ -1253,7 +1260,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
       return;
     }
 
-    final bool isAuthenticated = true; // Already checked above
+    const bool isAuthenticated = true; // Already checked above
     final String? currentUserEmail = authState.user.email;
 
     Get.bottomSheet(
@@ -1294,13 +1301,13 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                 style: TextStyle(
                                     color: AppTheme.textPrimary,
                                     fontSize: 18,
-                                    fontWeight: FontWeight.bold),
+                                    fontWeight: FontWeight.bold,),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 '$cinemaName ($format)',
                                 style: const TextStyle(
-                                    color: AppTheme.textSecondary, fontSize: 14),
+                                    color: AppTheme.textSecondary, fontSize: 14,),
                               ),
                               if (isAuthenticated && currentUserEmail != null) ...[
                                 const SizedBox(height: 12),
@@ -1309,7 +1316,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                   children: [
                                     CircleAvatar(
                                       radius: 12,
-                                      backgroundImage: (authState as Authenticated).user.photoURL != null
+                                      backgroundImage: (authState).user.photoURL != null
                                           ? CachedNetworkImageProvider(authState.user.photoURL!)
                                           : null,
                                       child: authState.user.photoURL == null
@@ -1322,7 +1329,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                       style: TextStyle(
                                           color: AppTheme.accentPurple.withOpacity(0.6),
                                           fontSize: 11,
-                                          fontStyle: FontStyle.italic),
+                                          fontStyle: FontStyle.italic,),
                                     ),
                                   ],
                                 ),
@@ -1487,11 +1494,11 @@ class _CinemaListViewState extends State<_CinemaListView> {
             Icon(icon, color: color, size: 32),
             const SizedBox(height: 12),
             Text(title,
-                style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: color, fontWeight: FontWeight.bold),),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1514,7 +1521,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
       displayName = authState.user.displayName;
 
       // 如果 Firebase 的 photoURL 為空，嘗試從 providerData 中找出 Facebook 頭像
-      if (userPhotoUrl == null || userPhotoUrl!.isEmpty) {
+      if (userPhotoUrl == null || userPhotoUrl.isEmpty) {
         for (final provider in authState.user.providerData) {
           if (provider.providerId == 'facebook.com' && provider.photoURL != null) {
             userPhotoUrl = provider.photoURL;
@@ -1524,9 +1531,9 @@ class _CinemaListViewState extends State<_CinemaListView> {
       }
 
       // 如果是 Facebook 圖片，強制要求大圖
-      if (userPhotoUrl != null && userPhotoUrl!.contains('facebook.com')) {
-        if (!userPhotoUrl!.contains('type=large')) {
-          userPhotoUrl = userPhotoUrl!.contains('?')
+      if (userPhotoUrl != null && userPhotoUrl.contains('facebook.com')) {
+        if (!userPhotoUrl.contains('type=large')) {
+          userPhotoUrl = userPhotoUrl.contains('?')
               ? '$userPhotoUrl&type=large'
               : '$userPhotoUrl?type=large';
         }
@@ -1698,7 +1705,7 @@ class _PaginatedHistorySheetState<T>
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          AppTheme.accentPurple),
+                                          AppTheme.accentPurple,),
                                     ),
                                   ),
                                 )
@@ -1706,7 +1713,7 @@ class _PaginatedHistorySheetState<T>
                                   child: TextButton.icon(
                                     onPressed: _loadMore,
                                     icon: const Icon(Icons.expand_more_rounded,
-                                        size: 18),
+                                        size: 18,),
                                     label: const Text('載入更多'),
                                     style: TextButton.styleFrom(
                                       foregroundColor: AppTheme.accentPurple,

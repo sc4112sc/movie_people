@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import '../models/movie.dart';
@@ -139,7 +140,7 @@ class AtmoviesService {
         releaseDate: releaseDate,
         genreIds: [],
         atmoviesId: movieId,
-      ));
+      ),);
     }
 
     // 依照上映廳數排序 (越多越熱門) -> 相同則依照名稱排
@@ -228,7 +229,7 @@ class AtmoviesService {
           final castStr = text.replaceFirst('演員：', '').trim();
           if (castStr.isNotEmpty) {
             castList.addAll(
-                castStr.split(RegExp(r'[,\s、/]+')).where((s) => s.isNotEmpty));
+                castStr.split(RegExp(r'[,\s、/]+')).where((s) => s.isNotEmpty),);
           }
           collectingCast = true;
         } else if (collectingCast) {
@@ -314,7 +315,7 @@ class AtmoviesService {
 
     final cityName = regionCodes.entries
         .firstWhere((e) => e.value == regionCode,
-            orElse: () => const MapEntry('', ''))
+            orElse: () => const MapEntry('', ''),)
         .key;
 
     final processedCinemas = <String>{};
@@ -342,8 +343,9 @@ class AtmoviesService {
           final cinemaCode = cinemaMatch.group(1)!;
           final cinemaName = cinemaLink.text.trim();
           final uniqueKey = '${cinemaCode}_$cinemaName';
-          if (cinemaName.isEmpty || processedCinemas.contains(uniqueKey))
+          if (cinemaName.isEmpty || processedCinemas.contains(uniqueKey)) {
             continue;
+          }
           processedCinemas.add(uniqueKey);
 
           currentCinema = Cinema(
@@ -397,7 +399,7 @@ class AtmoviesService {
           format: currentFormat,
           language: currentLanguage,
           bookingUrl: getBookingUrl(currentCinema.name),
-        ));
+        ),);
 
         // 成功解析到時間，標記為已解析
         didParseTimeSinceLastFormatChange = true;
@@ -514,7 +516,7 @@ class AtmoviesService {
         // 從 remaining 中移除已匹配的格式文字（不區分大小寫）
         remaining = remaining
             .replaceAll(
-                RegExp(RegExp.escape(pattern), caseSensitive: false), '')
+                RegExp(RegExp.escape(pattern), caseSensitive: false), '',)
             .trim();
       }
     }
@@ -550,7 +552,7 @@ class AtmoviesService {
 
   /// 取得即將上映電影列表
   Future<List<Movie>> getComingSoon() async {
-    print('🌐 [AtmoviesService] 正在從開眼抓取即將上映列表...');
+    debugPrint('🌐 [AtmoviesService] 正在從開眼抓取即將上映列表...');
     final response = await http.get(
       Uri.parse('$_baseUrl/movie/next/0/'),
       headers: {
@@ -559,7 +561,7 @@ class AtmoviesService {
     );
 
     if (response.statusCode != 200) {
-      print('❌ [AtmoviesService] 列表請求失敗: ${response.statusCode}');
+      debugPrint('❌ [AtmoviesService] 列表請求失敗: ${response.statusCode}');
       throw Exception('HTTP ${response.statusCode}');
     }
 
@@ -569,7 +571,7 @@ class AtmoviesService {
     // 抓取所有日期與電影列表容器
     // 根據最新觀察，日期在 h2.major span，列表在 ul.filmListAll
     final listItems = document.querySelectorAll('h2.major, ul.filmListAll, .filmListDate, ul.filmNextListAll');
-    print('🔍 [AtmoviesService] 找到 ${listItems.length} 個結構區塊');
+    debugPrint('🔍 [AtmoviesService] 找到 ${listItems.length} 個結構區塊');
 
     String currentDate = '';
     final now = DateTime.now();
@@ -578,7 +580,7 @@ class AtmoviesService {
     for (final node in listItems) {
       if (node.localName == 'h2' || node.className.contains('filmListDate')) {
         currentDate = node.text.trim().replaceAll('/', '-');
-        print('📅 [AtmoviesService] 偵測到上映日期: $currentDate');
+        debugPrint('📅 [AtmoviesService] 偵測到上映日期: $currentDate');
       } else {
         // 如果這個區塊的日期早於今天，則跳過
         if (currentDate.isNotEmpty) {
@@ -587,7 +589,7 @@ class AtmoviesService {
             if (parts.length == 3) {
               final releaseDate = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
               if (releaseDate.isBefore(today)) {
-                print('⏭️ [AtmoviesService] 跳過已上映區塊: $currentDate');
+                debugPrint('⏭️ [AtmoviesService] 跳過已上映區塊: $currentDate');
                 continue;
               }
             }
@@ -620,14 +622,14 @@ class AtmoviesService {
             releaseDate: currentDate.isNotEmpty ? currentDate : '即將上映',
             genreIds: [],
             atmoviesId: movieId,
-          ));
+          ),);
         }
       }
     }
 
     // 如果上述結構失效，嘗試最後的保底方案：直接抓取所有電影連結
     if (movies.isEmpty) {
-      print('⚠️ [AtmoviesService] 結構化解析失敗，啟動保底方案...');
+      debugPrint('⚠️ [AtmoviesService] 結構化解析失敗，啟動保底方案...');
       final allLinks = document.querySelectorAll('a[href*="/movie/f"]');
       for (final link in allLinks) {
         final href = link.attributes['href'] ?? '';
@@ -646,17 +648,17 @@ class AtmoviesService {
               releaseDate: '即將上映',
               genreIds: [],
               atmoviesId: movieId,
-            ));
+            ),);
           }
         }
       }
     }
 
-    print('📊 [AtmoviesService] 共抓取到 ${movies.length} 部即將上映電影');
+    debugPrint('📊 [AtmoviesService] 共抓取到 ${movies.length} 部即將上映電影');
 
     // 為了顯示預告片與簡介，我們對前 10 筆（最快上映的）進行詳情抓取
     if (movies.isNotEmpty) {
-      print('📥 [AtmoviesService] 正在抓取前 10 筆電影詳情...');
+      debugPrint('📥 [AtmoviesService] 正在抓取前 10 筆電影詳情...');
       final detailedMovies = await Future.wait(
         movies.take(10).map((m) => _getComingSoonDetail(m)),
       );
@@ -675,7 +677,7 @@ class AtmoviesService {
   /// 內部方法：針對即將上映電影抓取簡介與預告片
   Future<Movie> _getComingSoonDetail(Movie movie) async {
     try {
-      print('🔍 [AtmoviesService] 正在抓取詳情: ${movie.title} (${movie.atmoviesId})');
+      debugPrint('🔍 [AtmoviesService] 正在抓取詳情: ${movie.title} (${movie.atmoviesId})');
       final response = await http.get(
         Uri.parse('$_baseUrl/movie/${movie.atmoviesId}/'),
         headers: {
@@ -734,15 +736,15 @@ class AtmoviesService {
       }
 
       if (trailerUrl != null) {
-        print('🎬 [AtmoviesService] 找到預告片: $trailerUrl');
+        debugPrint('🎬 [AtmoviesService] 找到預告片: $trailerUrl');
       } else {
-        print('⚠️ [AtmoviesService] 找不到預告片: ${movie.title}');
+        debugPrint('⚠️ [AtmoviesService] 找不到預告片: ${movie.title}');
       }
 
       return Movie(
         id: movie.id,
         title: movie.title,
-        posterPath: (highResPoster != null && highResPoster.isNotEmpty) 
+        posterPath: (highResPoster.isNotEmpty) 
             ? highResPoster 
             : movie.posterPath,
         backdropPath: movie.backdropPath,
@@ -754,7 +756,7 @@ class AtmoviesService {
         trailerUrl: trailerUrl,
       );
     } catch (e) {
-      print('❌ [AtmoviesService] 抓取詳情異常: $e');
+      debugPrint('❌ [AtmoviesService] 抓取詳情異常: $e');
       return movie;
     }
   }

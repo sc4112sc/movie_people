@@ -72,7 +72,7 @@ class MovieListPage extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () {
                     Get.to(() => const ComingSoonPage(),
-                        transition: Transition.rightToLeftWithFade);
+                        transition: Transition.rightToLeftWithFade,);
                   },
                   child: Container(
                     height: 120,
@@ -117,7 +117,7 @@ class MovieListPage extends StatelessWidget {
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                          horizontal: 10, vertical: 4,),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(8),
@@ -163,7 +163,7 @@ class MovieListPage extends StatelessWidget {
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.arrow_forward_rounded,
-                                  color: Colors.white, size: 20),
+                                  color: Colors.white, size: 20,),
                             ),
                           ),
                         ],
@@ -621,7 +621,7 @@ class MovieListPage extends StatelessWidget {
           padding: const EdgeInsets.only(right: 16),
           child: IconButton(
             icon: const Icon(Icons.account_circle_outlined,
-                size: 30, color: Colors.white),
+                size: 30, color: Colors.white,),
             onPressed: () {
               Get.to(() => const LoginPage(), transition: Transition.downToUp);
             },
@@ -699,7 +699,7 @@ class MovieListPage extends StatelessWidget {
                   Get.snackbar('聯繫我們', '請致信：sc4112sc@gmail.com',
                       snackPosition: SnackPosition.TOP,
                       backgroundColor: AppTheme.cardDark,
-                      colorText: Colors.white);
+                      colorText: Colors.white,);
                 },
               ),
               const SizedBox(height: 16),
@@ -717,7 +717,7 @@ class MovieListPage extends StatelessWidget {
                       colorText: Colors.white,
                       margin: const EdgeInsets.all(16),
                       icon: const Icon(Icons.check_circle_outline,
-                          color: AppTheme.accentPurple),
+                          color: AppTheme.accentPurple,),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -732,7 +732,7 @@ class MovieListPage extends StatelessWidget {
                     ),
                   ),
                   child: const Text('登出帳號',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontWeight: FontWeight.bold),),
                 ),
               ),
               const SizedBox(height: 16),
@@ -743,7 +743,7 @@ class MovieListPage extends StatelessWidget {
                     return Text(
                       '版本號 v${snapshot.data!.version} (${snapshot.data!.buildNumber})',
                       style: TextStyle(
-                          color: Colors.white.withOpacity(0.3), fontSize: 11),
+                          color: Colors.white.withOpacity(0.3), fontSize: 11,),
                     );
                   }
                   return const SizedBox.shrink();
@@ -759,11 +759,11 @@ class MovieListPage extends StatelessWidget {
   Widget _buildMenuTile(
       {required IconData icon,
       required String title,
-      required VoidCallback onTap}) {
+      required VoidCallback onTap,}) {
     return ListTile(
       leading: Icon(icon, color: Colors.white70, size: 22),
       title: Text(title,
-          style: const TextStyle(color: Colors.white, fontSize: 15)),
+          style: const TextStyle(color: Colors.white, fontSize: 15),),
       trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       onTap: onTap,

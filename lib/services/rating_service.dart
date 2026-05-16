@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/rating_entry.dart';
 
@@ -52,8 +53,8 @@ class RatingService {
             uid: {
               'rating': newRating,
               'comment': comment,
-              'lastHistoryKey': newHistoryKey
-            }
+              'lastHistoryKey': newHistoryKey,
+            },
           },
         });
       }
@@ -155,7 +156,7 @@ class RatingService {
       entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return entries;
     } catch (e) {
-      print('❌ [RatingService] Error fetching history: $e');
+      debugPrint('❌ [RatingService] Error fetching history: $e');
       return [];
     }
   }

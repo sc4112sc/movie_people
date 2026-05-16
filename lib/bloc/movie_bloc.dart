@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/movie.dart';
@@ -85,15 +86,15 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
     FetchNowPlaying event,
     Emitter<MovieState> emit,
   ) async {
-    print('🔄 [MovieBloc] 收到下拉刷新事件，準備重新抓取資料...');
+    debugPrint('🔄 [MovieBloc] 收到下拉刷新事件，準備重新抓取資料...');
     final currentComingSoon = state is MovieLoaded ? (state as MovieLoaded).comingSoon : <Movie>[];
     emit(MovieLoading());
     try {
       final movies = await _service.getNowPlaying();
-      print('✅ [MovieBloc] 成功從遠端取得 ${movies.length} 部最新上映電影！');
+      debugPrint('✅ [MovieBloc] 成功從遠端取得 ${movies.length} 部最新上映電影！');
       emit(MovieLoaded(movies: movies, comingSoon: currentComingSoon));
     } catch (e) {
-      print('❌ [MovieBloc] 抓取資料失敗: $e');
+      debugPrint('❌ [MovieBloc] 抓取資料失敗: $e');
       emit(MovieError(e.toString()));
     } finally {
       event.completer?.complete();
@@ -104,7 +105,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
     FetchComingSoon event,
     Emitter<MovieState> emit,
   ) async {
-    print('🔄 [MovieBloc] 抓取即將上映電影...');
+    debugPrint('🔄 [MovieBloc] 抓取即將上映電影...');
     // 不論先前是否有資料，進入即將上映頁面時都顯示 Loading 以提供更好的反饋
     final currentMovies = state is MovieLoaded ? (state as MovieLoaded).movies : <Movie>[];
     emit(MovieLoading());
@@ -112,7 +113,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
       final comingSoon = await _service.getComingSoon();
       emit(MovieLoaded(movies: currentMovies, comingSoon: comingSoon));
     } catch (e) {
-      print('❌ [MovieBloc] 抓取即將上映失敗: $e');
+      debugPrint('❌ [MovieBloc] 抓取即將上映失敗: $e');
       emit(MovieError(e.toString()));
     } finally {
       event.completer?.complete();
@@ -129,8 +130,8 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
         emit((state as MovieLoaded).copyWithMovie(
           event.index, 
           detailed, 
-          isComingSoon: event.isComingSoon
-        ));
+          isComingSoon: event.isComingSoon,
+        ),);
       } catch (_) {
         // keep current state
       }

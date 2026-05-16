@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -41,7 +42,7 @@ class AuthService {
         if (upgradedUrl != user.photoURL) {
           await user.updatePhotoURL(upgradedUrl);
           await user.reload();
-          print('✅ [AuthService] Upgraded Google photo: $upgradedUrl');
+          debugPrint('✅ [AuthService] Upgraded Google photo: $upgradedUrl');
         } else {
           await user.reload();
         }
@@ -49,7 +50,7 @@ class AuthService {
 
       return userCredential;
     } catch (e) {
-      print('❌ [AuthService] Google Sign-In Error: $e');
+      debugPrint('❌ [AuthService] Google Sign-In Error: $e');
       rethrow;
     }
   }
@@ -77,28 +78,28 @@ class AuthService {
               fields: "id,name,email,picture.type(large)",
             );
             final String? fbPhotoUrl = userData['picture']?['data']?['url'];
-            print('🔍 [AuthService] FB userData picture url: $fbPhotoUrl');
-            print('🔍 [AuthService] Current Firebase photoURL: ${user.photoURL}');
+            debugPrint('🔍 [AuthService] FB userData picture url: $fbPhotoUrl');
+            debugPrint('🔍 [AuthService] Current Firebase photoURL: ${user.photoURL}');
             if (fbPhotoUrl != null && fbPhotoUrl != user.photoURL) {
               await user.updatePhotoURL(fbPhotoUrl);
               await user.reload();
-              print('🔍 [AuthService] Updated photoURL: ${_auth.currentUser?.photoURL}');
+              debugPrint('🔍 [AuthService] Updated photoURL: ${_auth.currentUser?.photoURL}');
             }
           } catch (e) {
-            print('⚠️ [AuthService] Failed to update FB photo: $e');
+            debugPrint('⚠️ [AuthService] Failed to update FB photo: $e');
           }
         }
 
         return userCredential;
       } else if (result.status == LoginStatus.cancelled) {
-        print('ℹ️ [AuthService] Facebook Sign-In Cancelled by user');
+        debugPrint('ℹ️ [AuthService] Facebook Sign-In Cancelled by user');
         return null;
       } else {
-        print('❌ [AuthService] Facebook Sign-In Failed: ${result.message}');
+        debugPrint('❌ [AuthService] Facebook Sign-In Failed: ${result.message}');
         throw Exception(result.message);
       }
     } catch (e) {
-      print('❌ [AuthService] Facebook Sign-In Error: $e');
+      debugPrint('❌ [AuthService] Facebook Sign-In Error: $e');
       rethrow;
     }
   }

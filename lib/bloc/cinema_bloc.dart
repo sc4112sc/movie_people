@@ -63,7 +63,7 @@ class CinemaBloc extends Bloc<CinemaEvent, CinemaState> {
       emit(CinemaLoaded(
         cinemaShowtimes: data,
         currentRegion: event.regionCode,
-      ));
+      ),);
     } catch (e) {
       emit(CinemaError(e.toString()));
     }
@@ -82,7 +82,7 @@ class CinemaBloc extends Bloc<CinemaEvent, CinemaState> {
       emit(CinemaLoaded(
         cinemaShowtimes: data,
         currentRegion: event.regionCode,
-      ));
+      ),);
     } catch (e) {
       emit(CinemaError(e.toString()));
     }

@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../models/movie.dart';
 
 enum ReminderStatus {
@@ -53,7 +53,7 @@ class ReminderService {
 
     _prefs = await SharedPreferences.getInstance();
     _isInitialized = true;
-    print('✅ [ReminderService] 初始化完成');
+    debugPrint('✅ [ReminderService] 初始化完成');
   }
 
   /// 切換提醒狀態
@@ -66,7 +66,7 @@ class ReminderService {
       reminders.remove(id);
       await _notificationsPlugin.cancel(id.hashCode);
       await _prefs.setStringList(_prefKey, reminders);
-      print('🔕 [ReminderService] 已取消提醒: ${movie.title}');
+      debugPrint('🔕 [ReminderService] 已取消提醒: ${movie.title}');
       return ReminderStatus.cancelled;
     } else {
       // 設定提醒
@@ -75,10 +75,10 @@ class ReminderService {
         reminders.add(id);
         await _scheduleNotification(id.hashCode, movie, scheduledDate);
         await _prefs.setStringList(_prefKey, reminders);
-        print('🔔 [ReminderService] 已設定提醒: ${movie.title} ($scheduledDate)');
+        debugPrint('🔔 [ReminderService] 已設定提醒: ${movie.title} ($scheduledDate)');
         return ReminderStatus.scheduled;
       } catch (e) {
-        print('❌ [ReminderService] 設定提醒失敗: $e');
+        debugPrint('❌ [ReminderService] 設定提醒失敗: $e');
         return ReminderStatus.failed;
       }
     }

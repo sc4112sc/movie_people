@@ -12,7 +12,7 @@ class AppTheme {
   static const Color starYellow = Color(0xFFFBBF24);
   static const Color dividerColor = Color(0xFF30363D);
 
-  static final LinearGradient accentGradient = LinearGradient(
+  static const LinearGradient accentGradient = LinearGradient(
     colors: [accentPurple, accentBlue],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

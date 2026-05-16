@@ -39,11 +39,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             if (widget.index < state.movies.length &&
                 state.movies[widget.index].id == widget.movie.id) {
               currentMovie = state.movies[widget.index];
-              print(
-                  'DEBUG: Movie detail updated from state: ${currentMovie.title}, length: ${currentMovie.overview.length}');
+              debugPrint(
+                  'DEBUG: Movie detail updated from state: ${currentMovie.title}, length: ${currentMovie.overview.length}',);
             } else {
-              print(
-                  'DEBUG: ID mismatch! widget.id=${widget.movie.id}, state.id=${state.movies[widget.index].id}');
+              debugPrint(
+                  'DEBUG: ID mismatch! widget.id=${widget.movie.id}, state.id=${state.movies[widget.index].id}',);
             }
           }
 
@@ -149,7 +149,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                       color: AppTheme.cardDark,
                       child: const Center(
                         child: Icon(Icons.broken_image,
-                            size: 50, color: AppTheme.textSecondary),
+                            size: 50, color: AppTheme.textSecondary,),
                       ),
                     ),
                   )
@@ -215,7 +215,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   child: Row(
                     children: [
                       const Icon(Icons.theaters_rounded,
-                          color: Colors.white, size: 16),
+                          color: Colors.white, size: 16,),
                       const SizedBox(width: 4),
                       Text(
                         '全台 ${movie.voteAverage.toInt()} 廳',
@@ -241,7 +241,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   child: Row(
                     children: [
                       const Icon(Icons.calendar_today_rounded,
-                          color: AppTheme.textSecondary, size: 14),
+                          color: AppTheme.textSecondary, size: 14,),
                       const SizedBox(width: 6),
                       Text(
                         '上映: ${movie.releaseDate}',
@@ -343,7 +343,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 children: movie.cast!
                     .map((actor) => Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                              horizontal: 12, vertical: 6,),
                           decoration: BoxDecoration(
                             color: AppTheme.surfaceDark,
                             borderRadius: BorderRadius.circular(20),
@@ -360,7 +360,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ))
+                        ),)
                     .toList(),
               ),
           ],

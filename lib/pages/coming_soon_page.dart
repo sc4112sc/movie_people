@@ -48,8 +48,8 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
           context.read<MovieBloc>().add(LoadMovieDetail(
             i, 
             movie, 
-            isComingSoon: true
-          ));
+            isComingSoon: true,
+          ),);
         }
       }
     }
@@ -419,7 +419,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
                                   },
                                   icon: Icon(
                                     isReminded ? Icons.notifications_active_rounded : Icons.notifications_none_rounded, 
-                                    color: isReminded ? AppTheme.accentPurple : Colors.white
+                                    color: isReminded ? AppTheme.accentPurple : Colors.white,
                                   ),
                                 ),
                               ),

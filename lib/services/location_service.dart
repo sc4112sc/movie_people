@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -49,7 +50,7 @@ class LocationService {
         return placemark.administrativeArea ?? placemark.subAdministrativeArea ?? placemark.locality;
       }
     } catch (e) {
-      print('Location error: $e');
+      debugPrint('Location error: $e');
     }
     
     return null;

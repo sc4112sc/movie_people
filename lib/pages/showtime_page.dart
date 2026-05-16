@@ -25,7 +25,7 @@ class ShowtimePage extends StatelessWidget {
           cinemaId: cinema.id,
           movieId: movie.id,
           date: DateTime.now(),
-        )),
+        ),),
       child: _ShowtimeView(movie: movie, cinema: cinema),
     );
   }
@@ -58,7 +58,7 @@ class _ShowtimeViewState extends State<_ShowtimeView> {
           cinemaId: widget.cinema.id,
           movieId: widget.movie.id,
           date: date,
-        ));
+        ),);
   }
 
   @override
@@ -128,7 +128,7 @@ class _ShowtimeViewState extends State<_ShowtimeView> {
                         Row(
                           children: [
                             const Icon(Icons.theaters_rounded,
-                                size: 16, color: AppTheme.accentCyan),
+                                size: 16, color: AppTheme.accentCyan,),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -208,18 +208,18 @@ class _ShowtimeViewState extends State<_ShowtimeView> {
 
               if (state is ShowtimeLoaded) {
                 if (state.showtimes.isEmpty) {
-                  return SliverFillRemaining(
+                  return const SliverFillRemaining(
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.event_busy_rounded,
-                              size: 48, color: AppTheme.textSecondary),
-                          const SizedBox(height: 12),
-                          const Text(
+                          Icon(Icons.event_busy_rounded,
+                              size: 48, color: AppTheme.textSecondary,),
+                          SizedBox(height: 12),
+                          Text(
                             '今日暫無場次',
                             style: TextStyle(
-                                color: AppTheme.textSecondary, fontSize: 16),
+                                color: AppTheme.textSecondary, fontSize: 16,),
                           ),
                         ],
                       ),
@@ -405,8 +405,6 @@ class _ShowtimeViewState extends State<_ShowtimeView> {
   }
 
   void _showBookingSnackbar(Showtime showtime) async {
-    final timeStr = DateFormat('HH:mm').format(showtime.time);
-    
     if (showtime.bookingUrl != null) {
       try {
         final uri = Uri.parse(showtime.bookingUrl!);
@@ -415,7 +413,7 @@ class _ShowtimeViewState extends State<_ShowtimeView> {
           return;
         }
       } catch (e) {
-        print('Error launching booking URL: $e');
+        debugPrint('Error launching booking URL: $e');
       }
     }
 

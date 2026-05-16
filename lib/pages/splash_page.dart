@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/movie_bloc.dart';
-import '../services/atmovies_service.dart';
 import '../theme/app_theme.dart';
 import 'movie_list_page.dart';
 import '../services/location_service.dart';
@@ -464,7 +463,7 @@ class _SplashPageState extends State<SplashPage>
                   child: Container(
                     width: 6,
                     height: 6,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: AppTheme.accentGradient,
                     ),
