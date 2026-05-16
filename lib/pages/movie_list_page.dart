@@ -11,8 +11,11 @@ import '../theme/app_theme.dart';
 import '../bloc/auth_bloc.dart';
 import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'movie_detail_page.dart';
 import 'coming_soon_page.dart';
+import 'privacy_policy_page.dart';
+
 class MovieListPage extends StatelessWidget {
   const MovieListPage({super.key});
 
@@ -68,7 +71,8 @@ class MovieListPage extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 child: GestureDetector(
                   onTap: () {
-                    Get.to(() => const ComingSoonPage(), transition: Transition.rightToLeftWithFade);
+                    Get.to(() => const ComingSoonPage(),
+                        transition: Transition.rightToLeftWithFade);
                   },
                   child: Container(
                     height: 120,
@@ -112,7 +116,8 @@ class MovieListPage extends StatelessWidget {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(8),
@@ -157,7 +162,8 @@ class MovieListPage extends StatelessWidget {
                                 color: Colors.white24,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                              child: const Icon(Icons.arrow_forward_rounded,
+                                  color: Colors.white, size: 20),
                             ),
                           ),
                         ],
@@ -278,8 +284,11 @@ class MovieListPage extends StatelessWidget {
                               placeholder: (_, __) => Container(
                                 color: AppTheme.cardDark,
                                 child: const Center(
-                                  child: Icon(Icons.movie_rounded,
-                                      size: 36, color: AppTheme.textSecondary,),
+                                  child: Icon(
+                                    Icons.movie_rounded,
+                                    size: 36,
+                                    color: AppTheme.textSecondary,
+                                  ),
                                 ),
                               ),
                               errorWidget: (_, __, ___) => Container(
@@ -288,9 +297,11 @@ class MovieListPage extends StatelessWidget {
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.movie_rounded,
-                                          size: 36,
-                                          color: AppTheme.textSecondary,),
+                                      const Icon(
+                                        Icons.movie_rounded,
+                                        size: 36,
+                                        color: AppTheme.textSecondary,
+                                      ),
                                       const SizedBox(height: 8),
                                       Text(
                                         movie.title,
@@ -309,8 +320,11 @@ class MovieListPage extends StatelessWidget {
                           : Container(
                               color: AppTheme.cardDark,
                               child: const Center(
-                                child: Icon(Icons.movie_rounded,
-                                    size: 36, color: AppTheme.textSecondary,),
+                                child: Icon(
+                                  Icons.movie_rounded,
+                                  size: 36,
+                                  color: AppTheme.textSecondary,
+                                ),
                               ),
                             ),
                       // 底部漸層
@@ -342,7 +356,9 @@ class MovieListPage extends StatelessWidget {
                               Container(
                                 margin: const EdgeInsets.only(right: 6),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 3,),
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.6),
                                   borderRadius: BorderRadius.circular(4),
@@ -359,7 +375,9 @@ class MovieListPage extends StatelessWidget {
                             if (movie.voteAverage > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 3,),
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: AppTheme.accentGradient,
                                   borderRadius: BorderRadius.circular(4),
@@ -367,8 +385,11 @@ class MovieListPage extends StatelessWidget {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.theaters_rounded,
-                                        color: Colors.white, size: 10,),
+                                    const Icon(
+                                      Icons.theaters_rounded,
+                                      color: Colors.white,
+                                      size: 10,
+                                    ),
                                     const SizedBox(width: 3),
                                     Text(
                                       '${movie.voteAverage.toInt()}廳',
@@ -599,7 +620,8 @@ class MovieListPage extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(right: 16),
           child: IconButton(
-            icon: const Icon(Icons.account_circle_outlined, size: 30, color: Colors.white),
+            icon: const Icon(Icons.account_circle_outlined,
+                size: 30, color: Colors.white),
             onPressed: () {
               Get.to(() => const LoginPage(), transition: Transition.downToUp);
             },
@@ -611,76 +633,140 @@ class MovieListPage extends StatelessWidget {
 
   void _showProfileBottomSheet(BuildContext context, User user) {
     Get.bottomSheet(
+      isScrollControlled: true,
       Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
         decoration: const BoxDecoration(
           color: AppTheme.cardDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundImage: user.photoURL != null
-                  ? CachedNetworkImageProvider(user.photoURL!)
-                  : null,
-              child: user.photoURL == null
-                  ? const Icon(Icons.person, size: 40)
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              user.displayName ?? '電影人',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              user.email ?? '',
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppTheme.textSecondary,
+              const SizedBox(height: 24),
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: AppTheme.surfaceDark,
+                backgroundImage: user.photoURL != null
+                    ? CachedNetworkImageProvider(user.photoURL!)
+                    : null,
+                child: user.photoURL == null
+                    ? const Icon(Icons.person, size: 40, color: Colors.white)
+                    : null,
               ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Get.back(); // close bottom sheet
-                  context.read<AuthBloc>().add(SignOutRequested());
-                  Get.snackbar(
-                    '登出成功',
-                    '您已成功登出電影人，期待您再次回來！',
-                    snackPosition: SnackPosition.TOP,
-                    backgroundColor: AppTheme.cardDark.withOpacity(0.95),
-                    colorText: Colors.white,
-                    margin: const EdgeInsets.all(16),
-                    icon: const Icon(Icons.check_circle_outline, color: AppTheme.accentPurple),
-                  );
+              const SizedBox(height: 16),
+              Text(
+                user.displayName ?? '電影人',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                user.email ?? '',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: Colors.white10, height: 1),
+              const SizedBox(height: 8),
+              _buildMenuTile(
+                icon: Icons.privacy_tip_outlined,
+                title: '隱私權政策',
+                onTap: () {
+                  Get.back();
+                  Get.to(() => const PrivacyPolicyPage());
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent.withOpacity(0.2),
-                  foregroundColor: Colors.redAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              ),
+              _buildMenuTile(
+                icon: Icons.mail_outline_rounded,
+                title: '意見回饋',
+                onTap: () {
+                  Get.back();
+                  Get.snackbar('聯繫我們', '請致信：sc4112sc@gmail.com',
+                      snackPosition: SnackPosition.TOP,
+                      backgroundColor: AppTheme.cardDark,
+                      colorText: Colors.white);
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Get.back(); // close bottom sheet
+                    context.read<AuthBloc>().add(SignOutRequested());
+                    Get.snackbar(
+                      '登出成功',
+                      '您已成功登出電影人，期待您再次回來！',
+                      snackPosition: SnackPosition.TOP,
+                      backgroundColor: AppTheme.cardDark.withOpacity(0.95),
+                      colorText: Colors.white,
+                      margin: const EdgeInsets.all(16),
+                      icon: const Icon(Icons.check_circle_outline,
+                          color: AppTheme.accentPurple),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent.withOpacity(0.1),
+                    foregroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side:
+                          BorderSide(color: Colors.redAccent.withOpacity(0.2)),
+                    ),
                   ),
-                ),
-                child: const Text(
-                  '登出',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  child: const Text('登出帳號',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+              FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Text(
+                      '版本號 v${snapshot.data!.version} (${snapshot.data!.buildNumber})',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.3), fontSize: 11),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMenuTile(
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white70, size: 22),
+      title: Text(title,
+          style: const TextStyle(color: Colors.white, fontSize: 15)),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      onTap: onTap,
     );
   }
 }
