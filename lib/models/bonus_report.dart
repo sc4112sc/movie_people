@@ -2,6 +2,7 @@ class BonusReport {
   final String id;
   final String movieId;
   final String cinemaName;
+  final String format; // Added format field
   final bool isAvailable;
   final DateTime timestamp;
   final String? userId;
@@ -13,6 +14,7 @@ class BonusReport {
     required this.id,
     required this.movieId,
     required this.cinemaName,
+    required this.format,
     required this.isAvailable,
     required this.timestamp,
     this.userId,
@@ -26,6 +28,7 @@ class BonusReport {
       'id': id,
       'movieId': movieId,
       'cinemaName': cinemaName,
+      'format': format,
       'isAvailable': isAvailable,
       'timestamp': timestamp.toIso8601String(),
       'userId': userId,
@@ -40,6 +43,7 @@ class BonusReport {
       id: json['id'] as String? ?? '',
       movieId: json['movieId'] as String? ?? '',
       cinemaName: json['cinemaName'] as String? ?? '',
+      format: json['format'] as String? ?? '數位',
       isAvailable: json['isAvailable'] as bool? ?? false,
       timestamp: json['timestamp'] != null 
           ? DateTime.parse(json['timestamp'] as String) 

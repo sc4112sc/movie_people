@@ -11,14 +11,14 @@ class BonusService {
     if (report.userId == null) return;
     
     final ref = _database
-        .ref('$_nodeName/${report.movieId}/${report.cinemaName}/${report.userId}');
+        .ref('$_nodeName/${report.movieId}/${report.cinemaName}/${report.format}/${report.userId}');
     await ref.set(report.toJson()..['id'] = report.userId);
   }
 
-  /// 取得特定電影與影城的最新特典狀態（Stream，即時更新，僅取最後一筆供摘要顯示）
-  Stream<List<BonusReport>> getReports(String movieId, String cinemaName) {
+  /// 取得特定電影、影城與廳別的最新特典狀態（Stream）
+  Stream<List<BonusReport>> getReports(String movieId, String cinemaName, String format) {
     return _database
-        .ref('$_nodeName/$movieId/$cinemaName')
+        .ref('$_nodeName/$movieId/$cinemaName/$format')
         .orderByChild('timestamp')
         .limitToLast(1)
         .onValue
@@ -35,20 +35,20 @@ class BonusService {
   }
 
   /// 分頁取得特典回報歷史（最新在前）
-  /// [lastTimestamp] 用於分頁查詢更舊的資料
   Future<List<BonusReport>> getBonusHistory(
     String movieId,
-    String cinemaName, {
+    String cinemaName,
+    String format, {
     String? lastTimestamp,
   }) async {
     Query query = _database
-        .ref('$_nodeName/$movieId/$cinemaName')
+        .ref('$_nodeName/$movieId/$cinemaName/$format')
         .orderByChild('timestamp')
         .limitToLast(_pageSize);
 
     if (lastTimestamp != null) {
       query = _database
-          .ref('$_nodeName/$movieId/$cinemaName')
+          .ref('$_nodeName/$movieId/$cinemaName/$format')
           .orderByChild('timestamp')
           .endBefore(lastTimestamp)
           .limitToLast(_pageSize);
@@ -66,22 +66,31 @@ class BonusService {
     return reports;
   }
 
-  /// 取得特定電影所有影城的特典狀態摘要（Stream，即時更新）
-  Stream<Map<String, BonusReport>> getMovieBonusSummary(String movieId) {
+  /// 取得特定電影所有影城所有廳別的特典狀態摘要（Stream）
+  /// 返回格式：{ "影城名": { "廳別名": BonusReport } }
+  Stream<Map<String, Map<String, BonusReport>>> getMovieBonusSummary(String movieId) {
     return _database.ref('$_nodeName/$movieId').onValue.map((event) {
       final Map<dynamic, dynamic>? data =
           event.snapshot.value as Map<dynamic, dynamic>?;
       if (data == null) return {};
 
-      final Map<String, BonusReport> summary = {};
+      final Map<String, Map<String, BonusReport>> summary = {};
       data.forEach((cinemaName, cinemaData) {
         if (cinemaData is Map) {
-          final reports = cinemaData.values
-              .map((v) => BonusReport.fromJson(v as Map<dynamic, dynamic>))
-              .toList();
-          if (reports.isNotEmpty) {
-            reports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-            summary[cinemaName] = reports.first;
+          final Map<String, BonusReport> formatSummary = {};
+          cinemaData.forEach((formatName, formatData) {
+            if (formatData is Map) {
+              final reports = formatData.values
+                  .map((v) => BonusReport.fromJson(v as Map<dynamic, dynamic>))
+                  .toList();
+              if (reports.isNotEmpty) {
+                reports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                formatSummary[formatName] = reports.first;
+              }
+            }
+          });
+          if (formatSummary.isNotEmpty) {
+            summary[cinemaName] = formatSummary;
           }
         }
       });

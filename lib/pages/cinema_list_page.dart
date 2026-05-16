@@ -52,7 +52,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
   final LocationService _locationService = LocationService();
   final BonusService _bonusService = BonusService();
   bool _isLocating = false;
-  Map<String, BonusReport> _bonusSummary = {};
+  Map<String, Map<String, BonusReport>> _bonusSummary = {};
   StreamSubscription? _bonusSubscription;
 
   @override
@@ -463,8 +463,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final entry = entries[index];
-                        return _buildCinemaCard(entry.key, entry.value,
-                            bonusSummary[entry.key.name]);
+                        return _buildCinemaCard(entry.key, entry.value);
                       },
                       childCount: entries.length,
                     ),
@@ -483,7 +482,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
   }
 
   Widget _buildCinemaCard(
-      Cinema cinema, List<Showtime> showtimes, BonusReport? lastReport) {
+      Cinema cinema, List<Showtime> showtimes) {
     final now = DateTime.now();
     final todayShowtimes = <Showtime>[];
     final tomorrowShowtimes = <Showtime>[];
@@ -542,8 +541,6 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    _buildBonusStatus(lastReport, cinema.name),
                   ],
                 ),
               ),
@@ -552,7 +549,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
           const SizedBox(height: 14),
 
           if (todayShowtimes.isNotEmpty)
-            _buildShowtimesByFormat(todayShowtimes),
+            _buildShowtimesByFormat(todayShowtimes, cinema.name),
 
           if (tomorrowShowtimes.isNotEmpty) ...[
             Center(
@@ -587,7 +584,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
     );
   }
 
-  Widget _buildShowtimesByFormat(List<Showtime> showtimes) {
+  Widget _buildShowtimesByFormat(List<Showtime> showtimes, String cinemaName) {
     if (showtimes.isEmpty) return const SizedBox.shrink();
 
     final byFormat = <String, List<Showtime>>{};
@@ -606,30 +603,37 @@ class _CinemaListViewState extends State<_CinemaListView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: byFormat.entries.map((entry) {
+        final format = entry.key;
+        final report = _bonusSummary[cinemaName]?[format];
+
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.only(bottom: 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _getFormatColor(entry.key).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    entry.key,
-                    style: TextStyle(
-                      color: _getFormatColor(entry.key),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _getFormatColor(format).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      format,
+                      style: TextStyle(
+                        color: _getFormatColor(format),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
+                  _buildBonusStatus(report, cinemaName, format),
+                ],
               ),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -769,7 +773,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildShowtimesByFormat(showtimes),
+              _buildShowtimesByFormat(showtimes, cinema.name),
               const SizedBox(height: 24),
             ],
           ),
@@ -1054,14 +1058,15 @@ class _CinemaListViewState extends State<_CinemaListView> {
     );
   }
 
-  void _showBonusHistorySheet(String cinemaName) {
+  void _showBonusHistorySheet(String cinemaName, String format) {
     Get.bottomSheet(
       _PaginatedHistorySheet<BonusReport>(
-        title: '$cinemaName 特典回報紀錄',
+        title: '$cinemaName ($format) 特典回報紀錄',
         emptyText: '尚無回報紀錄',
         loader: (lastTimestamp) => _bonusService.getBonusHistory(
           widget.movie.id.toString(),
           cinemaName,
+          format,
           lastTimestamp: lastTimestamp,
         ),
         itemBuilder: (report) => _buildBonusHistoryItem(report),
@@ -1137,12 +1142,12 @@ class _CinemaListViewState extends State<_CinemaListView> {
     );
   }
 
-  Widget _buildBonusStatus(BonusReport? lastReport, String cinemaName) {
+  Widget _buildBonusStatus(BonusReport? lastReport, String cinemaName, String format) {
     if (lastReport == null) {
       return Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showBonusReportDialog(cinemaName),
+          onTap: () => _showBonusReportDialog(cinemaName, format),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -1174,7 +1179,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showBonusReportDialog(cinemaName),
+        onTap: () => _showBonusReportDialog(cinemaName, format),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1244,7 +1249,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
     return '${diff.inDays} 天前';
   }
 
-  void _showBonusReportDialog(String cinemaName) {
+  void _showBonusReportDialog(String cinemaName, String format) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) {
       Get.snackbar(
@@ -1303,7 +1308,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                cinemaName,
+                                '$cinemaName ($format)',
                                 style: const TextStyle(
                                     color: AppTheme.textSecondary, fontSize: 14),
                               ),
@@ -1349,7 +1354,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                             TextButton.icon(
                               onPressed: () {
                                 Get.back();
-                                _showBonusHistorySheet(cinemaName);
+                                _showBonusHistorySheet(cinemaName, format);
                               },
                               icon: const Icon(Icons.history_rounded, size: 14),
                               label: const Text('查看全部', style: TextStyle(fontSize: 12)),
@@ -1363,7 +1368,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         ),
                         const SizedBox(height: 16),
                         StreamBuilder<List<BonusReport>>(
-                          stream: _bonusService.getReports(widget.movie.id.toString(), cinemaName),
+                          stream: _bonusService.getReports(widget.movie.id.toString(), cinemaName, format),
                           builder: (context, snapshot) {
                             if (!snapshot.hasData || snapshot.data!.isEmpty) {
                               return Padding(
@@ -1445,7 +1450,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         subtitle: '現場仍有存貨',
                         icon: Icons.check_circle_rounded,
                         color: Colors.green,
-                        onTap: () => _submitReport(cinemaName, true),
+                        onTap: () => _submitReport(cinemaName, format, true),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -1455,7 +1460,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
                         subtitle: '現場已發送完畢',
                         icon: Icons.cancel_rounded,
                         color: Colors.red,
-                        onTap: () => _submitReport(cinemaName, false),
+                        onTap: () => _submitReport(cinemaName, format, false),
                       ),
                     ),
                   ],
@@ -1505,7 +1510,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
     );
   }
 
-  Future<void> _submitReport(String cinemaName, bool isAvailable) async {
+  Future<void> _submitReport(String cinemaName, String format, bool isAvailable) async {
     final authState = context.read<AuthBloc>().state;
     String? userId;
     String? userEmail;
@@ -1542,6 +1547,7 @@ class _CinemaListViewState extends State<_CinemaListView> {
       id: '', // Will be set by Firebase
       movieId: widget.movie.id.toString(),
       cinemaName: cinemaName,
+      format: format,
       isAvailable: isAvailable,
       timestamp: DateTime.now(),
       userId: userId,
