@@ -614,26 +614,32 @@ class _CinemaListViewState extends State<_CinemaListView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _getFormatColor(format).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      format,
-                      style: TextStyle(
-                        color: _getFormatColor(format),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: _getFormatColor(format),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Text(
+                        format,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                   _buildBonusStatus(report, cinemaName, format),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -642,9 +648,9 @@ class _CinemaListViewState extends State<_CinemaListView> {
                   final isPast = st.time.isBefore(DateTime.now());
                   return Material(
                     color: isPast
-                        ? AppTheme.surfaceDark.withOpacity(0.5)
+                        ? AppTheme.surfaceDark.withOpacity(0.3)
                         : AppTheme.surfaceDark,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       onTap: isPast
                           ? null
@@ -671,16 +677,17 @@ class _CinemaListViewState extends State<_CinemaListView> {
                                 margin: const EdgeInsets.all(16),
                               );
                             },
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                            horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isPast
-                                ? AppTheme.dividerColor.withOpacity(0.3)
-                                : AppTheme.accentPurple.withOpacity(0.3),
+                                ? AppTheme.dividerColor.withOpacity(0.2)
+                                : AppTheme.accentPurple.withOpacity(0.4),
+                            width: 1,
                           ),
                         ),
                         child: Column(
@@ -1148,21 +1155,25 @@ class _CinemaListViewState extends State<_CinemaListView> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _showBonusReportDialog(cinemaName, format),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.accentPurple.withOpacity(0.3)),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.add_circle_outline_rounded,
-                    size: 14, color: AppTheme.accentPurple.withOpacity(0.7)),
-                const SizedBox(width: 6),
+                    size: 12, color: AppTheme.accentPurple.withOpacity(0.7)),
+                const SizedBox(width: 4),
                 Text(
-                  '回報特典狀態',
+                  '回報特典',
                   style: TextStyle(
                     color: AppTheme.accentPurple.withOpacity(0.8),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -1180,60 +1191,39 @@ class _CinemaListViewState extends State<_CinemaListView> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _showBonusReportDialog(cinemaName, format),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: statusColor.withOpacity(0.2)),
+            color: statusColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: statusColor.withOpacity(0.3), width: 0.5),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 isAvailable ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                size: 14,
+                size: 12,
                 color: statusColor,
               ),
+              const SizedBox(width: 4),
+              Text(
+                isAvailable ? '有特典' : '無特典',
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  isAvailable ? '目前有特典' : '目前已無特典',
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 1,
-                height: 10,
-                color: statusColor.withOpacity(0.2),
-              ),
-              const SizedBox(width: 8),
-              if (lastReport.userPhotoUrl != null) ...[
-                CircleAvatar(
-                  radius: 7,
-                  backgroundImage: CachedNetworkImageProvider(lastReport.userPhotoUrl!),
-                ),
-                const SizedBox(width: 4),
-              ],
               Text(
                 timeStr,
                 style: TextStyle(
-                  color: statusColor.withOpacity(0.7),
-                  fontSize: 10,
+                  color: statusColor.withOpacity(0.6),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 14,
-                color: statusColor.withOpacity(0.5),
               ),
             ],
           ),
